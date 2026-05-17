@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pace Mate | Running pace and race calculator</title>
+  <meta name="description" content="Pace Mate is a running calculator for pace, speed, race targets, common splits, and metric or imperial conversions." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg: #101114;
+      --ink: #fffaf4;
+      --muted: #c7c0b7;
+      --orange: #fc4c02;
+      --orange-soft: rgba(252, 76, 2, 0.14);
+      --panel: rgba(20, 21, 25, 0.76);
+      --panel-strong: #18191e;
+      --line: rgba(255, 255, 255, 0.12);
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    a { color: inherit; }
+
+    .site-nav {
+      position: fixed;
+      z-index: 5;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 68px;
+      padding: 0 32px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(10, 11, 14, 0.76);
+      backdrop-filter: blur(22px);
+    }
+
+    .brand {
+      font-size: 17px;
+      font-weight: 800;
+      text-decoration: none;
+      letter-spacing: 0;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover { color: var(--ink); }
+
+    .nav-cta {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .hero {
+      position: relative;
+      min-height: 94vh;
+      display: grid;
+      align-items: center;
+      padding: 110px 32px 68px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(9, 10, 13, 0.98) 0%, rgba(9, 10, 13, 0.86) 42%, rgba(9, 10, 13, 0.34) 72%, rgba(9, 10, 13, 0.10) 100%),
+        linear-gradient(180deg, rgba(9, 10, 13, 0.22) 0%, rgba(9, 10, 13, 0.72) 100%),
+        url("./assets/pace-mate.jpeg") right 7% center / min(48vw, 520px) auto no-repeat,
+        #111216;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 180px;
+      background: linear-gradient(180deg, transparent, var(--bg));
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 1120px);
+      margin: 0 auto;
+      transform: translateY(-10px);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: #ffb38c;
+      font-size: 13px;
+      font-weight: 850;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 640px;
+      margin: 0;
+      font-size: 70px;
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .hero-copy {
+      max-width: 540px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 20px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 34px;
+    }
+
+    .button {
+      min-height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 22px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 850;
+      text-decoration: none;
+    }
+
+    .button.primary {
+      background: var(--orange);
+      color: #fff;
+      box-shadow: 0 18px 42px rgba(252, 76, 2, 0.30);
+    }
+
+    .button.secondary {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--ink);
+    }
+
+    .content {
+      width: min(100%, 1120px);
+      margin: 0 auto;
+      padding: 74px 32px 96px;
+    }
+
+    .section-head {
+      max-width: 760px;
+      margin-bottom: 28px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 42px;
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .section-head p {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .feature-grid,
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .feature,
+    .step,
+    .download-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .feature,
+    .step {
+      padding: 24px;
+    }
+
+    .feature strong,
+    .step strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .feature p,
+    .step p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .step span {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      margin-bottom: 18px;
+      border-radius: 999px;
+      background: var(--orange);
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .download-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      margin-top: 20px;
+      padding: 28px;
+      background:
+        linear-gradient(135deg, rgba(252, 76, 2, 0.16), rgba(255, 255, 255, 0.03)),
+        var(--panel-strong);
+    }
+
+    .download-panel h2 { font-size: 34px; }
+
+    .download-panel p {
+      max-width: 620px;
+      margin: 10px 0 0;
+      color: var(--muted);
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      padding: 28px 32px;
+      text-align: center;
+    }
+
+    @media (max-width: 820px) {
+      .site-nav {
+        padding: 0 18px;
+      }
+
+      .nav-links a:not(.nav-cta):not(.tools-link) {
+        display: none;
+      }
+
+      .hero {
+        min-height: 92vh;
+        padding: 110px 20px 48px;
+        background:
+          linear-gradient(180deg, rgba(9, 10, 13, 0.40) 0%, rgba(9, 10, 13, 0.92) 46%, #101114 100%),
+          url("./assets/pace-mate.jpeg") center top 74px / min(82vw, 360px) auto no-repeat,
+          #111216;
+      }
+
+      .hero-inner {
+        transform: none;
+        padding-top: min(72vw, 330px);
+      }
+
+      h1 {
+        font-size: 48px;
+      }
+
+      .hero-copy {
+        font-size: 18px;
+      }
+
+      .content {
+        padding: 58px 20px 74px;
+      }
+
+      h2 {
+        font-size: 34px;
+      }
+
+      .feature-grid,
+      .steps-grid,
+      .download-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .download-panel .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary">
+    <a class="brand" href="./about.html">Pace Mate</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-to-use">How to use</a>
+      <a href="#ios-download">iOS</a>
+      <a class="tools-link" href="../index.html">Tools</a>
+      <a class="nav-cta" href="./index.html">Open tool</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">Running Tools</p>
+      <h1>Pace, speed, and race targets without unit friction.</h1>
+      <p class="hero-copy">
+        Pace Mate keeps metric and imperial running math in one place:
+        finish times, pace, speed, common splits, race targets, and ultra distances.
+      </p>
+      <div class="hero-actions">
+        <a class="button primary" href="./index.html">Open web tool</a>
+        <a class="button secondary" href="https://apps.apple.com/app/pace-mate" rel="noopener">Download iOS version</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="content" id="features">
+      <div class="section-head">
+        <p class="eyebrow">What it does</p>
+        <h2>Built for quick decisions before a workout or race.</h2>
+        <p>
+          The tool is designed around the values runners constantly convert:
+          distance, finish time, pace, speed, and target splits.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature">
+          <strong>Convert pace and speed</strong>
+          <p>Move between min/km, min/mile, km/h, and mph without re-entering the same run.</p>
+        </article>
+        <article class="feature">
+          <strong>Plan race targets</strong>
+          <p>Save target finish times for common race distances and reuse them as defaults.</p>
+        </article>
+        <article class="feature">
+          <strong>Check useful splits</strong>
+          <p>See practical split times for track, road, marathon, and ultra distances.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="content" id="how-to-use">
+      <div class="section-head">
+        <p class="eyebrow">How to use it</p>
+        <h2>Start with whichever number you already know.</h2>
+      </div>
+
+      <div class="steps-grid">
+        <article class="step">
+          <span>1</span>
+          <strong>Choose a distance</strong>
+          <p>Pick a race chip, select a longer distance, or enter a custom kilometer or mile value.</p>
+        </article>
+        <article class="step">
+          <span>2</span>
+          <strong>Edit pace, speed, or time</strong>
+          <p>Change the input you know and the matching finish time, pace, and speed update together.</p>
+        </article>
+        <article class="step">
+          <span>3</span>
+          <strong>Save your targets</strong>
+          <p>Use Settings for your common goals. The web version keeps them after refresh.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="content" id="ios-download">
+      <div class="download-panel">
+        <div>
+          <p class="eyebrow">iPhone app</p>
+          <h2>Use Pace Mate from your home screen.</h2>
+          <p>
+            The iOS version keeps the same runner-first calculations in a native app.
+            Use the web tool when you are on desktop, and iOS when you are heading out the door.
+          </p>
+        </div>
+        <a class="button primary" href="https://apps.apple.com/app/pace-mate" rel="noopener">Download iOS version</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Pace Mate is part of Running Tools.
+  </footer>
+</body>
+</html>

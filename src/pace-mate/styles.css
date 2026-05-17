@@ -44,18 +44,47 @@ button {
 
 .shell {
   display: grid;
-  grid-template-columns: minmax(340px, 430px) minmax(280px, 420px);
-  gap: 56px;
+  grid-template-columns: minmax(340px, 430px);
+  gap: 14px;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   padding: 36px;
 }
 
+.tool-frame {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.app-links {
+  width: min(100%, 420px);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.app-links a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 850;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(31, 45, 61, 0.06);
+}
+
 .phone {
   position: relative;
   width: min(100%, 420px);
-  height: min(900px, calc(100vh - 48px));
+  height: min(900px, calc(100vh - 100px));
   min-height: 760px;
   overflow: hidden;
   border: 12px solid #111318;

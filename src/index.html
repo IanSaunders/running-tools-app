@@ -117,6 +117,14 @@
                   box-shadow 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
 
+    .tool-card-main {
+      color: inherit;
+      text-decoration: none;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+    }
+
     .tool-card:hover {
       transform: translateY(-4px);
       box-shadow: var(--shadow-hover);
@@ -189,6 +197,57 @@
 
     .tool-card:hover .tool-cta svg {
       transform: translateX(4px);
+    }
+
+    .tool-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+      margin-top: 2.4rem;
+    }
+
+    .tool-action {
+      min-height: 3.8rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      padding: 0 1.4rem;
+      border-radius: 999px;
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .tool-action.primary {
+      background: var(--text);
+      color: #fff;
+    }
+
+    .tool-action.secondary {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: #fff;
+    }
+
+    .tool-card-overlay {
+      position: relative;
+    }
+
+    .tool-card-overlay::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .tool-card-overlay .tool-action {
+      position: relative;
+      z-index: 2;
+    }
+
+    .tool-card-overlay {
+      cursor: pointer;
     }
 
     /* ── Responsive ── */
@@ -450,9 +509,10 @@
     </a>
 
     <!-- ── Pace Mate ── -->
-    <a href="pace-mate/index.html" class="tool-card">
-      <div class="tool-preview">
-        <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <article class="tool-card tool-card-overlay" onclick="window.location.href='pace-mate/index.html'" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.location.href='pace-mate/index.html'; }" tabindex="0" role="link" aria-label="Open Pace Mate">
+      <div class="tool-card-main">
+        <div class="tool-preview">
+          <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
           <rect width="640" height="360" fill="#111217"/>
           <rect x="0" y="0" width="640" height="54" fill="#191923"/>
           <circle cx="32" cy="27" r="10" fill="#fc4c02"/>
@@ -489,20 +549,19 @@
             <rect x="440" y="0" width="124" height="40" rx="20" fill="#2b2935"/>
             <text x="502" y="26" text-anchor="middle" fill="#fc7a2b">More</text>
           </g>
-        </svg>
+          </svg>
+        </div>
       </div>
       <div class="tool-body">
         <p class="tool-tag">Calculator</p>
         <h2 class="tool-title">Pace Mate</h2>
         <p class="tool-description">Convert pace, speed, race targets, common splits, and metric or imperial units for road, track, marathon, and ultra distances.</p>
-        <span class="tool-cta">
-          Open tool
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="#22272E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
+        <div class="tool-actions" aria-label="Pace Mate actions">
+          <a class="tool-action primary" href="pace-mate/index.html" onclick="event.stopPropagation()">Open tool</a>
+          <a class="tool-action secondary" href="https://apps.apple.com/app/pace-mate" rel="noopener" onclick="event.stopPropagation()">Download iOS</a>
+        </div>
       </div>
-    </a>
+    </article>
 
   </main>
 
