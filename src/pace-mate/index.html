@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pace Mate | Running Tools</title>
+  <meta name="description" content="Convert running pace, speed, distance, race targets, and splits across metric and imperial units." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="web-tool">
+  <main class="shell">
+    <section class="phone" aria-label="Pace Mate web app">
+      <div class="statusbar">
+        <span>17:40</span>
+        <span class="status-icons">LTE 61%</span>
+      </div>
+
+      <section class="screen active" id="calculator-screen">
+        <header class="screen-head">
+          <div>
+            <p class="eyebrow">Pace Mate</p>
+            <h1>Calculator</h1>
+          </div>
+          <div class="head-actions">
+            <div class="unit-toggle" aria-label="Unit mode">
+              <button class="unit-choice active" data-display-unit="metric" type="button">Metric</button>
+              <button class="unit-choice" data-display-unit="imperial" type="button">Imperial</button>
+            </div>
+            <button class="record-open" id="record-toggle" type="button">Records</button>
+          </div>
+        </header>
+
+        <section class="hero-panel">
+          <div class="metric-pair">
+            <div>
+              <span class="label">Finish</span>
+              <strong id="summary-time">23:45</strong>
+            </div>
+            <div>
+              <span class="label">Pace</span>
+              <strong id="summary-pace">4:45 / km</strong>
+            </div>
+          </div>
+          <div class="dual-readout">
+            <span><em>Distance</em><strong id="summary-distance">5.00 km</strong></span>
+            <span><em>Also</em><strong id="summary-distance-alt">3.11 mi</strong></span>
+            <span><em>Speed</em><strong id="summary-speed">12.6 km/h</strong></span>
+          </div>
+        </section>
+
+        <div class="preset-row" aria-label="Quick race distances">
+          <button class="chip active" data-km="5" type="button">5K</button>
+          <button class="chip" data-km="10" type="button">10K</button>
+          <button class="chip" data-km="21.0975" type="button">Half</button>
+          <button class="chip" data-km="42.195" type="button">Mar</button>
+          <select class="preset-select" id="preset-select" aria-label="More distances">
+            <option value="">More</option>
+            <option value="0.4">400 m</option>
+            <option value="0.8">800 m</option>
+            <option value="1.5">1500 m</option>
+            <option value="1.609344">1 mile</option>
+            <option value="3">3K</option>
+            <option value="50">50K</option>
+            <option value="80.4672">50M</option>
+            <option value="100">100K</option>
+            <option value="160.9344">100M</option>
+            <option value="321.8688">200M</option>
+          </select>
+        </div>
+
+        <div class="calculator-stack">
+          <section class="input-card">
+            <div class="input-title">
+              <span>Distance</span>
+              <span class="hint" id="distance-hint">3.11 mi</span>
+            </div>
+            <div class="field-row">
+              <input id="distance-value" inputmode="decimal" type="number" min="0.1" max="500" step="0.01" value="5.00" aria-label="Distance value" />
+              <select id="distance-unit" aria-label="Distance unit">
+                <option value="km">km</option>
+                <option value="mi">mi</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="input-card">
+            <div class="input-title">
+              <span>Pace</span>
+              <span class="hint" id="pace-hint">7:39 / mi</span>
+            </div>
+            <div class="field-row pace-time">
+              <input id="pace-min" inputmode="numeric" type="number" min="1" max="40" value="4" aria-label="Pace minutes" />
+              <span>:</span>
+              <input id="pace-sec" inputmode="numeric" type="number" min="0" max="59" value="45" aria-label="Pace seconds" />
+              <select id="pace-unit" aria-label="Pace unit">
+                <option value="km">/ km</option>
+                <option value="mi">/ mi</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="input-card">
+            <div class="input-title">
+              <span>Speed</span>
+              <span class="hint" id="speed-hint">7.85 mph</span>
+            </div>
+            <div class="field-row">
+              <input id="speed-value" inputmode="decimal" type="number" min="1" max="45" step="0.1" value="12.6" aria-label="Speed value" />
+              <select id="speed-unit" aria-label="Speed unit">
+                <option value="kmh">km/h</option>
+                <option value="mph">mph</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="input-card">
+            <div class="input-title">
+              <span>Time</span>
+              <span class="hint">Edit to update pace.</span>
+            </div>
+            <div class="field-row compact-time">
+              <input id="time-hours" inputmode="numeric" type="number" min="0" max="99" value="0" aria-label="Time hours" />
+              <span>h</span>
+              <input id="time-min" inputmode="numeric" type="number" min="0" max="59" value="23" aria-label="Time minutes" />
+              <span>m</span>
+              <input id="time-sec" inputmode="numeric" type="number" min="0" max="59" value="45" aria-label="Time seconds" />
+              <span>s</span>
+            </div>
+          </section>
+
+          <section class="slider-card">
+            <div class="input-title">
+              <span>Fine tune pace</span>
+              <span class="hint" id="speed-readout">12.63 km/h - 7.85 mph</span>
+            </div>
+            <input id="pace-slider" type="range" min="100" max="900" value="285" aria-label="Fine tune pace" />
+            <div class="slider-scale">
+              <span>WR fast</span>
+              <span>Easy</span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen" id="race-screen">
+        <header class="screen-head">
+          <div>
+            <p class="eyebrow">Race tools</p>
+            <h1>Race</h1>
+          </div>
+        </header>
+
+        <div class="mode-toggle">
+          <button class="mode-choice active" data-race-mode="predict" type="button">Times</button>
+          <button class="mode-choice" data-race-mode="targets" type="button">Targets</button>
+        </div>
+
+        <section class="hero-panel race-hero">
+          <label>
+            <span class="label">Selected race</span>
+            <select id="race-select">
+              <option id="current-race-option" value="current" hidden>Current</option>
+              <option value="0.4">400 m</option>
+              <option value="0.8">800 m</option>
+              <option value="1.5">1500 m</option>
+              <option value="1.609344">1 mile</option>
+              <option value="3">3K</option>
+              <option value="5" selected>5K</option>
+              <option value="10">10K</option>
+              <option value="21.0975">Half</option>
+              <option value="42.195">Marathon</option>
+              <option value="50">50K</option>
+              <option value="80.4672">50M</option>
+              <option value="100">100K</option>
+              <option value="160.9344">100M</option>
+              <option value="321.8688">200M</option>
+            </select>
+          </label>
+          <strong id="race-selected-time">23:45</strong>
+          <span id="race-selected-sub">4:45 / km - 7:39 / mi</span>
+        </section>
+
+        <section class="race-panel slider-card" data-panel="predict">
+          <div class="input-title">
+            <span>Vary pace</span>
+            <span class="hint" id="race-pace-label">4:45 / km</span>
+          </div>
+          <input id="race-pace-slider" type="range" min="100" max="900" value="285" aria-label="Race pace" />
+          <div class="slider-scale">
+            <span>WR fast</span>
+            <span>Long run</span>
+          </div>
+        </section>
+
+        <section class="race-panel table-card" data-panel="predict">
+          <div class="table-head">
+            <span>Race</span>
+            <span>Time</span>
+            <span>Pace</span>
+          </div>
+          <div id="race-table"></div>
+        </section>
+
+        <section class="target-panel hidden table-card" data-panel="targets">
+          <div class="target-title">
+            <span class="label" id="target-race-label">5K targets</span>
+          </div>
+          <div class="table-head target-head">
+            <span>Target</span>
+            <span>/ km</span>
+            <span>/ mi</span>
+          </div>
+          <div id="target-table"></div>
+        </section>
+      </section>
+
+      <section class="screen" id="converter-screen">
+        <header class="screen-head">
+          <div>
+            <p class="eyebrow">Quick convert</p>
+            <h1>Convert</h1>
+          </div>
+        </header>
+
+        <div class="converter-grid">
+          <section class="convert-card metric-card">
+            <span class="label">Pace / km</span>
+            <div class="mini-time">
+              <input id="convert-pace-km-min" inputmode="numeric" type="number" min="1" max="60" aria-label="Kilometer pace minutes" />
+              <span>:</span>
+              <input id="convert-pace-km-sec" inputmode="numeric" type="number" min="0" max="59" aria-label="Kilometer pace seconds" />
+              <em>/ km</em>
+            </div>
+          </section>
+          <section class="convert-card imperial-card">
+            <span class="label">Pace / mi</span>
+            <div class="mini-time">
+              <input id="convert-pace-mi-min" inputmode="numeric" type="number" min="1" max="60" aria-label="Mile pace minutes" />
+              <span>:</span>
+              <input id="convert-pace-mi-sec" inputmode="numeric" type="number" min="0" max="59" aria-label="Mile pace seconds" />
+              <em>/ mi</em>
+            </div>
+          </section>
+          <section class="convert-card metric-card">
+            <span class="label">Speed km/h</span>
+            <div class="mini-speed">
+              <input id="convert-speed-km" inputmode="decimal" type="number" min="1" max="45" step="0.1" aria-label="Kilometers per hour" />
+              <em>km/h</em>
+            </div>
+          </section>
+          <section class="convert-card imperial-card">
+            <span class="label">Speed mph</span>
+            <div class="mini-speed">
+              <input id="convert-speed-mi" inputmode="decimal" type="number" min="1" max="28" step="0.1" aria-label="Miles per hour" />
+              <em>mph</em>
+            </div>
+          </section>
+        </div>
+
+        <section class="convert-card accent">
+          <div class="double-field">
+            <label>
+              <span>Kilometers</span>
+              <input id="convert-km" inputmode="decimal" type="number" min="0" max="500" step="0.01" aria-label="Kilometers" />
+            </label>
+            <label>
+              <span>Miles</span>
+              <input id="convert-mi" inputmode="decimal" type="number" min="0" max="310" step="0.01" aria-label="Miles" />
+            </label>
+          </div>
+        </section>
+
+        <section class="split-card-section">
+          <div class="input-title">
+            <span>Common splits</span>
+            <span class="hint" id="smart-split-label">1 km split</span>
+          </div>
+          <div class="split-card-grid" id="split-card-grid"></div>
+        </section>
+
+        <section class="zone-card">
+          <div class="input-title">
+            <span>Training zones</span>
+            <span class="hint" id="zone-source">From 23:45 5 km</span>
+          </div>
+          <div id="zone-list"></div>
+        </section>
+      </section>
+
+      <section class="screen" id="settings-screen">
+        <header class="screen-head">
+          <div>
+            <p class="eyebrow">Defaults</p>
+            <h1>Settings</h1>
+          </div>
+        </header>
+
+        <section class="settings-panel">
+          <label class="setting-toggle">
+            <span>
+              <strong>Use target times as defaults</strong>
+              <em>When you choose a saved race distance, the calculator uses that finish time.</em>
+            </span>
+            <input id="use-target-defaults" type="checkbox" checked />
+          </label>
+          <div id="target-settings-list"></div>
+        </section>
+      </section>
+
+      <nav class="tabbar" aria-label="App tabs">
+        <button class="tab active" data-screen="calculator-screen" type="button">
+          <span class="tab-icon">#</span>
+          <span>Calc</span>
+        </button>
+        <button class="tab" data-screen="race-screen" type="button">
+          <span class="tab-icon">=</span>
+          <span>Race</span>
+        </button>
+        <button class="tab" data-screen="converter-screen" type="button">
+          <span class="tab-icon">&lt;&gt;</span>
+          <span>Convert</span>
+        </button>
+        <button class="tab" data-screen="settings-screen" type="button">
+          <span class="tab-icon">*</span>
+          <span>Settings</span>
+        </button>
+      </nav>
+    </section>
+
+    <div class="modal hidden" id="record-modal" role="dialog" aria-modal="true" aria-labelledby="record-modal-title">
+      <button class="modal-backdrop" id="record-modal-backdrop" type="button" aria-label="Close records"></button>
+      <section class="modal-panel" aria-label="Record comparisons">
+        <header class="modal-head">
+          <div>
+            <p class="eyebrow">Record check</p>
+            <h2 id="record-modal-title">Compare this run</h2>
+            <p id="record-toggle-label">Benchmarks for current distance</p>
+          </div>
+          <button class="modal-close" id="record-modal-close" type="button" aria-label="Close records">Close</button>
+        </header>
+        <div class="record-panel" id="record-panel"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
