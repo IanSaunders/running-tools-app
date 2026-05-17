@@ -61,6 +61,7 @@ button {
 .app-links {
   width: min(100%, 420px);
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
 }
@@ -71,14 +72,28 @@ button {
   align-items: center;
   justify-content: center;
   padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.84);
-  color: var(--ink);
+  border: 1px solid rgba(101, 64, 45, 0.9);
+  border-radius: 8px;
+  background: rgba(31, 32, 48, 0.88);
+  color: #fffaf4;
   font-size: 14px;
   font-weight: 850;
   text-decoration: none;
-  box-shadow: 0 8px 20px rgba(31, 45, 61, 0.06);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.20);
+}
+
+.app-links a:hover,
+.app-links a:focus-visible {
+  border-color: #fc7a2b;
+  background: rgba(252, 122, 43, 0.18);
+  color: #fc7a2b;
+  outline: 0;
+}
+
+.app-links a:last-child {
+  border-color: transparent;
+  background: #fc7a2b;
+  color: #fffaf4;
 }
 
 .phone {
