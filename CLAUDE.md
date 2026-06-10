@@ -41,6 +41,9 @@ Connects to Strava via OAuth. Shows current running streak, next title number to
 ### `src/run-speed/` — Run Pace & Speed Calculator
 Interactive pace/speed visualiser across 8 distances (mile → 100 mile). Three chart types: heatmap, speed-to-save-time, and pace-vs-speed hyperbola. See `run-speed/CLAUDE.md` for full architecture.
 
+### `src/100-miles/` — How Far Is 100 Miles?
+Zoom-out interactive experience (powers-of-ten style) from a GPS watch face (46 mm) to the full Western States 100 course (161.3 km). 8 levels with SVG illustrations, animated count-up numbers, sky transitions, and WS100 course facts. Single self-contained HTML file, no dependencies.
+
 ## Style Conventions
 
 All tools share a consistent design language:
