@@ -12,23 +12,20 @@ Set the **Authorization Callback Domain** to `localhost`.
 
 ### 2. Add your credentials
 
-Edit `src/config.js`:
+Set both values as environment variables on Netlify (Site settings → Environment variables):
 
-```js
-const STRAVA_CONFIG = {
-  clientId:     'YOUR_CLIENT_ID',
-  clientSecret: 'YOUR_CLIENT_SECRET',
-};
-```
+- `STRAVA_CLIENT_ID` — also injected into the page as `config.js` at build time (public)
+- `STRAVA_CLIENT_SECRET` — used **only** by the `netlify/functions/strava-token.mjs` function; it never appears in the published site
+
+Token exchange and refresh go through `/api/strava/token`, so the secret stays server-side.
 
 ### 3. Run
 
 ```bash
-cd src/
-python3 -m http.server 8080
+netlify dev
 ```
 
-Open **http://localhost:8080/index.html** and click "Connect with Strava".
+`netlify dev` serves the static site and the token function together (plain `python3 -m http.server` will not serve `/api/strava/token`). Open the printed URL and click "Connect with Strava".
 
 ## How it works
 
@@ -39,4 +36,5 @@ Name your runs with the streak number as the last number in the title — e.g. `
 | File | Purpose |
 |------|---------|
 | `src/index.html` | Entire application (HTML + CSS + JS) |
-| `src/config.js` | Your Strava credentials — **do not commit** |
+| `src/config.js` | Generated at build time — holds only the public client id |
+| `netlify/functions/strava-token.mjs` | Token broker — holds the client secret server-side |
