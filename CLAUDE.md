@@ -7,11 +7,14 @@ Guidance for Claude Code when working in this repository.
 A collection of single-file vanilla JS running tools. No build step, no package manager, no framework.
 
 ```
+netlify/
+└── functions/
+    └── strava-token.mjs  ← Strava OAuth token broker (client secret stays in Netlify env vars)
 src/
 ├── index.html            ← Tools index / landing page
 ├── streak-checker/
 │   ├── index.html        ← Strava streak tracker app
-│   ├── config.js         ← Strava credentials (gitignored, do not commit)
+│   ├── config.js         ← Generated at build time (public client id only)
 │   └── CLAUDE.md         ← Full architecture notes for streak-checker
 └── run-speed/
     ├── index.html        ← Pace & speed calculator app
@@ -20,15 +23,7 @@ src/
 
 ## Running Locally
 
-Serve the `src/` directory over HTTP (required for Strava OAuth in streak-checker):
-
-```bash
-cd src/
-python3 -m http.server 8080
-# index:          http://localhost:8080/
-# streak-checker: http://localhost:8080/streak-checker/index.html
-# run-speed:      http://localhost:8080/run-speed/index.html
-```
+Use `netlify dev` from the repo root so the `/api/strava/token` function is served alongside the site (required for Strava OAuth in streak-checker). Tools that don't need OAuth can also be served with `python3 -m http.server 8080` from `src/`.
 
 ## Tools
 

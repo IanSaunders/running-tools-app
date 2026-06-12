@@ -23,7 +23,7 @@ streak-app/
 
 ## Credentials
 
-`src/config.js` holds the Strava API credentials and is already populated. It is excluded from version control via `.gitignore`.
+`config.js` is generated at build time (see `../../build.sh`) and holds only the public client id. The client secret lives in Netlify environment variables and is used exclusively by the `/api/strava/token` Netlify Function (`../../netlify/functions/strava-token.mjs`), which performs all token exchange and refresh calls.
 
 `index.html` loads `config.js` at startup and seeds localStorage from it automatically. If `config.js` is missing or its values are empty, the setup form is shown as a fallback.
 
@@ -52,7 +52,6 @@ STATE_AUTHENTICATED → refresh token if expired → fetch runs → display dash
 | Key | Purpose |
 |-----|---------|
 | `strava_client_id` | Strava app Client ID |
-| `strava_client_secret` | Strava app Client Secret |
 | `strava_access_token` | Current OAuth access token |
 | `strava_refresh_token` | OAuth refresh token |
 | `strava_token_expires_at` | Token expiry (Unix seconds) |

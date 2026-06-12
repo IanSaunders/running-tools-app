@@ -1,4 +1,6 @@
 [build]
-  base    = "src"
-  command = "bash ../build.sh"
-  publish = "."
+  command = "bash build.sh"
+  publish = "src"
+
+[functions]
+  directory = "netlify/functions"

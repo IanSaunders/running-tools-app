@@ -387,13 +387,13 @@
 
     const STRAVA_BASE      = 'https://www.strava.com';
     const STRAVA_API       = 'https://www.strava.com/api/v3';
+    const TOKEN_PROXY      = '/api/strava/token'; // Netlify Function; holds the client secret server-side
     const PAGE_SIZE        = 200;
     const MAX_PAGES        = 50; // 50 × 200 = up to 10,000 activities
     const RUN_SPORT_TYPES  = new Set(['Run', 'TrailRun', 'VirtualRun']);
 
     const LS = {
       CLIENT_ID:      'strava_client_id',
-      CLIENT_SECRET:  'strava_client_secret',
       ACCESS_TOKEN:   'strava_access_token',
       REFRESH_TOKEN:  'strava_refresh_token',
       EXPIRES_AT:     'strava_token_expires_at',
@@ -404,14 +404,12 @@
 
     function getCredentials() {
       return {
-        clientId:     localStorage.getItem(LS.CLIENT_ID),
-        clientSecret: localStorage.getItem(LS.CLIENT_SECRET),
+        clientId: localStorage.getItem(LS.CLIENT_ID),
       };
     }
 
-    function saveCredentials(clientId, clientSecret) {
-      localStorage.setItem(LS.CLIENT_ID,     clientId);
-      localStorage.setItem(LS.CLIENT_SECRET, clientSecret);
+    function saveCredentials(clientId) {
+      localStorage.setItem(LS.CLIENT_ID, clientId);
     }
 
     function getTokens() {
@@ -444,19 +442,16 @@
     }
 
     async function refreshAccessToken() {
-      const { clientId, clientSecret } = getCredentials();
       const { refreshToken } = getTokens();
-      if (!clientId || !clientSecret || !refreshToken) {
+      if (!refreshToken) {
         clearAll();
         return false;
       }
       try {
-        const res = await fetch(`${STRAVA_BASE}/oauth/token`, {
+        const res = await fetch(TOKEN_PROXY, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            client_id:     clientId,
-            client_secret: clientSecret,
             grant_type:    'refresh_token',
             refresh_token: refreshToken,
           }),
@@ -511,25 +506,16 @@
       }
 
       const code = params.get('code');
-      const { clientId, clientSecret } = getCredentials();
-
-      if (!clientId || !clientSecret) {
-        history.replaceState(null, '', cleanUrl);
-        renderSetup();
-        return true;
-      }
 
       renderLoading('Connecting to Strava…');
 
       try {
-        const res = await fetch(`${STRAVA_BASE}/oauth/token`, {
+        const res = await fetch(TOKEN_PROXY, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            client_id:     clientId,
-            client_secret: clientSecret,
             code,
-            grant_type:    'authorization_code',
+            grant_type: 'authorization_code',
           }),
         });
 
@@ -541,7 +527,7 @@
             const body = await res.json();
             if (body.message) detail += `: ${body.message}`;
           } catch {}
-          renderError(`Strava token exchange failed (${detail}). Check that your Client ID and Client Secret in config.js are correct.`);
+          renderError(`Strava token exchange failed (${detail}). Check the STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET environment variables on Netlify.`);
           return true;
         }
 
@@ -851,7 +837,7 @@
 
     function renderSetup() {
       const debugMode = new URLSearchParams(location.search).get('debug') === 'true';
-      const hasInjectedCreds = !!(STRAVA_CONFIG.clientId && STRAVA_CONFIG.clientSecret);
+      const hasInjectedCreds = !!STRAVA_CONFIG.clientId;
 
       if (hasInjectedCreds && !debugMode) {
         // Permissions explainer — credentials are pre-configured, just need OAuth consent
@@ -861,11 +847,11 @@
             <div class="card-title">Connect to Strava</div>
 
             <div class="notice" style="margin-bottom:1.25rem;border-color:#fbbf24;background:#fffbeb;">
-              <strong>⚠ Proceed with caution — personal tool, not for general use.</strong>
-              This app is built for a single Strava account. The API credentials are embedded
-              in the page source, which means anyone with the URL can connect their own Strava
-              account and read their data through this app's API key. Only use this if you
-              understand the implications. Do not share this URL with people you don't trust.
+              <strong>⚠ Personal tool, not for general use.</strong>
+              This app is built for a single Strava account. Token exchange happens through a
+              server-side function (the API secret is not in the page), but anyone with the URL
+              can still connect their own Strava account through this app. Do not share this URL
+              with people you don't trust.
             </div>
 
             <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">
@@ -909,7 +895,7 @@
       }
 
       // Credential form — shown when no injected creds, or debug mode
-      const saved = debugMode ? { clientId: '', clientSecret: '' } : getCredentials();
+      const saved = debugMode ? { clientId: '' } : getCredentials();
       document.getElementById('app').innerHTML = `
         ${header()}
         ${debugMode ? `<div class="notice" style="margin-bottom:1rem;">Debug mode — credentials are not pre-filled.</div>` : ''}
@@ -926,13 +912,6 @@
               value="${escapeHtml(saved.clientId || '')}" autocomplete="off" />
           </div>
 
-          <div class="form-group">
-            <label for="client-secret">Client Secret</label>
-            <input type="password" id="client-secret" placeholder="••••••••••••••••"
-              value="${escapeHtml(saved.clientSecret || '')}" autocomplete="off" />
-            <p class="form-hint">Stored only in your browser's localStorage.</p>
-          </div>
-
           <button class="btn" id="connect-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
@@ -943,23 +922,22 @@
           </button>
 
           <div class="notice">
-            <strong>Important:</strong> This app must be served over HTTP, not opened as a file.
-            Run <code>python3 -m http.server 8080</code> in the <code>src/</code> directory and
-            visit <code>http://localhost:8080/index.html</code>. Make sure
-            <code>localhost</code> is set as the Authorization Callback Domain in your Strava
-            API settings.
+            <strong>Important:</strong> Token exchange goes through the <code>/api/strava/token</code>
+            Netlify Function (it holds the client secret). For local development run
+            <code>netlify dev</code> from the repo root so the function is served alongside the site,
+            and make sure <code>localhost</code> is set as the Authorization Callback Domain in your
+            Strava API settings.
           </div>
         </div>
       `;
 
       document.getElementById('connect-btn').addEventListener('click', () => {
-        const id     = document.getElementById('client-id').value.trim();
-        const secret = document.getElementById('client-secret').value.trim();
-        if (!id || !secret) {
-          alert('Please enter both Client ID and Client Secret.');
+        const id = document.getElementById('client-id').value.trim();
+        if (!id) {
+          alert('Please enter your Client ID.');
           return;
         }
-        saveCredentials(id, secret);
+        saveCredentials(id);
         redirectToStravaOAuth();
       });
     }
@@ -1232,10 +1210,13 @@
     }
 
     async function main() {
-      // Seed credentials from config.js unless in debug mode
+      // Purge the client secret stored by older versions of this page.
+      localStorage.removeItem('strava_client_secret');
+
+      // Seed the client id from config.js unless in debug mode
       const debugMode = new URLSearchParams(location.search).get('debug') === 'true';
-      if (!debugMode && STRAVA_CONFIG.clientId && STRAVA_CONFIG.clientSecret) {
-        saveCredentials(STRAVA_CONFIG.clientId, STRAVA_CONFIG.clientSecret);
+      if (!debugMode && STRAVA_CONFIG.clientId) {
+        saveCredentials(STRAVA_CONFIG.clientId);
       }
 
       // 1. Check for OAuth callback
