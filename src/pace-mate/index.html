@@ -184,7 +184,10 @@
             </select>
           </label>
           <strong id="race-selected-time">23:45</strong>
-          <span id="race-selected-sub">4:45 / km - 7:39 / mi</span>
+          <div class="race-hero-foot">
+            <span id="race-selected-sub">4:45 / km - 7:39 / mi</span>
+            <button class="share-plan" id="share-plan" type="button">Share plan</button>
+          </div>
         </section>
 
         <section class="race-panel slider-card" data-panel="predict">
@@ -200,6 +203,13 @@
         </section>
 
         <section class="race-panel table-card" data-panel="predict">
+          <div class="predict-row">
+            <span class="hint" id="predict-label">Equivalent race times</span>
+            <div class="predict-toggle" role="group" aria-label="Prediction model">
+              <button class="predict-choice active" data-predict="true" type="button">Predicted</button>
+              <button class="predict-choice" data-predict="false" type="button">Even pace</button>
+            </div>
+          </div>
           <div class="table-head">
             <span>Race</span>
             <span>Time</span>
@@ -229,60 +239,70 @@
           </div>
         </header>
 
-        <div class="converter-grid">
-          <section class="convert-card metric-card">
-            <span class="label">Pace / km</span>
-            <div class="mini-time">
+        <section class="table-card convert-table">
+          <div class="convert-lanes-head">
+            <span></span>
+            <span class="lane-chip">Metric</span>
+            <span class="lane-chip">Imperial</span>
+          </div>
+
+          <div class="convert-row">
+            <span class="convert-label">Distance</span>
+            <div class="lane-field">
+              <input id="convert-km" inputmode="decimal" type="number" min="0" max="500" step="0.01" aria-label="Kilometers" />
+              <em>km</em>
+            </div>
+            <div class="lane-field">
+              <input id="convert-mi" inputmode="decimal" type="number" min="0" max="310" step="0.01" aria-label="Miles" />
+              <em>mi</em>
+            </div>
+          </div>
+
+          <div class="convert-row">
+            <span class="convert-label">Pace</span>
+            <div class="lane-field lane-pace">
               <input id="convert-pace-km-min" inputmode="numeric" type="number" min="1" max="60" aria-label="Kilometer pace minutes" />
               <span>:</span>
               <input id="convert-pace-km-sec" inputmode="numeric" type="number" min="0" max="59" aria-label="Kilometer pace seconds" />
-              <em>/ km</em>
+              <em>/km</em>
             </div>
-          </section>
-          <section class="convert-card imperial-card">
-            <span class="label">Pace / mi</span>
-            <div class="mini-time">
+            <div class="lane-field lane-pace">
               <input id="convert-pace-mi-min" inputmode="numeric" type="number" min="1" max="60" aria-label="Mile pace minutes" />
               <span>:</span>
               <input id="convert-pace-mi-sec" inputmode="numeric" type="number" min="0" max="59" aria-label="Mile pace seconds" />
-              <em>/ mi</em>
+              <em>/mi</em>
             </div>
-          </section>
-          <section class="convert-card metric-card">
-            <span class="label">Speed km/h</span>
-            <div class="mini-speed">
+          </div>
+
+          <div class="convert-row">
+            <span class="convert-label">Speed</span>
+            <div class="lane-field">
               <input id="convert-speed-km" inputmode="decimal" type="number" min="1" max="45" step="0.1" aria-label="Kilometers per hour" />
               <em>km/h</em>
             </div>
-          </section>
-          <section class="convert-card imperial-card">
-            <span class="label">Speed mph</span>
-            <div class="mini-speed">
+            <div class="lane-field">
               <input id="convert-speed-mi" inputmode="decimal" type="number" min="1" max="28" step="0.1" aria-label="Miles per hour" />
               <em>mph</em>
             </div>
-          </section>
-        </div>
+          </div>
 
-        <section class="convert-card accent">
-          <div class="double-field">
-            <label>
-              <span>Kilometers</span>
-              <input id="convert-km" inputmode="decimal" type="number" min="0" max="500" step="0.01" aria-label="Kilometers" />
-            </label>
-            <label>
-              <span>Miles</span>
-              <input id="convert-mi" inputmode="decimal" type="number" min="0" max="310" step="0.01" aria-label="Miles" />
-            </label>
+          <div class="convert-time-row">
+            <span class="convert-label">Time</span>
+            <strong id="convert-time">23:45</strong>
+            <span class="hint" id="convert-time-note">5K · same in both units</span>
           </div>
         </section>
 
-        <section class="split-card-section">
+        <section class="table-card cheat-card">
           <div class="input-title">
-            <span>Common splits</span>
-            <span class="hint" id="smart-split-label">1 km split</span>
+            <span>Pace cheat sheet</span>
+            <span class="hint">Tap a pace to apply it</span>
           </div>
-          <div class="split-card-grid" id="split-card-grid"></div>
+          <div class="cheat-head">
+            <span>Pace / km</span>
+            <span>Pace / mi</span>
+          </div>
+          <div id="cheat-sheet"></div>
         </section>
 
         <section class="zone-card">
@@ -301,6 +321,18 @@
             <h1>Settings</h1>
           </div>
         </header>
+
+        <section class="settings-panel appearance-panel">
+          <div class="input-title">
+            <span>Appearance</span>
+            <span class="hint">Dark is Monokai-inspired</span>
+          </div>
+          <div class="appearance-toggle" role="group" aria-label="Appearance">
+            <button class="appearance-choice" data-appearance="system" type="button">System</button>
+            <button class="appearance-choice" data-appearance="light" type="button">Light</button>
+            <button class="appearance-choice" data-appearance="dark" type="button">Dark</button>
+          </div>
+        </section>
 
         <section class="settings-panel">
           <label class="setting-toggle">

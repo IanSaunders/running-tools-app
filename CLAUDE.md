@@ -16,9 +16,14 @@ src/
 │   ├── index.html        ← Strava streak tracker app
 │   ├── config.js         ← Generated at build time (public client id only)
 │   └── CLAUDE.md         ← Full architecture notes for streak-checker
-└── run-speed/
-    ├── index.html        ← Pace & speed calculator app
-    └── CLAUDE.md         ← Full architecture notes for run-speed
+├── run-speed/
+│   ├── index.html        ← Pace & speed calculator app
+│   └── CLAUDE.md         ← Full architecture notes for run-speed
+└── pace-mate/
+    ├── index.html        ← Web companion to the PaceMate iOS app (4 tabs)
+    ├── app.js            ← All logic; state persisted to localStorage
+    ├── styles.css        ← Light theme + scoped Monokai dark theme
+    └── about.html        ← About / iOS download page
 ```
 
 ## Running Locally
@@ -35,6 +40,14 @@ Connects to Strava via OAuth. Shows current running streak, next title number to
 
 ### `src/run-speed/` — Run Pace & Speed Calculator
 Interactive pace/speed visualiser across 8 distances (mile → 100 mile). Three chart types: heatmap, speed-to-save-time, and pace-vs-speed hyperbola. See `run-speed/CLAUDE.md` for full architecture.
+
+### `src/pace-mate/` — Pace Mate (web companion to the iOS app)
+Feature-matched with the PaceMate iOS app. Key behaviours to keep in sync with iOS:
+- **Race predictions**: Riegel `^1.06` up to the marathon, `^1.20` exponent beyond it, expressed as a ratio of one `enduranceFactor` curve so predictions are consistent in both directions. Predicted / Even pace toggle is persisted.
+- **Share plan**: builds a cumulative-splits text pace band; `navigator.share` with clipboard fallback.
+- **Converter**: side-by-side metric/imperial grid (distance/pace/speed editable in both units, prominent Time row) + pace cheat sheet whose 7-row window stays anchored while tapping (re-centres only when pace leaves the window).
+- **Theming**: light by default; `html[data-theme="dark"]` applies a Monokai palette via native CSS nesting. Settings has a System/Light/Dark control; System follows `prefers-color-scheme` live.
+- **Units**: persisted to localStorage; first visit defaults from the browser region (US/GB/LR/MM → imperial).
 
 ## Style Conventions
 
