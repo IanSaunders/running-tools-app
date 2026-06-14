@@ -1414,8 +1414,9 @@ html[data-theme="dark"] {
 }
 
 /* Desktop mockup: use the extra width so the converter fits without scroll —
-   the cheat sheet and training zones sit side by side under the convert grid. */
-.web-tool #converter-screen {
+   the cheat sheet and training zones sit side by side under the convert grid.
+   Gated on .active so it doesn't override the .screen show/hide mechanism. */
+.web-tool #converter-screen.active {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 16px;
@@ -1458,7 +1459,7 @@ html[data-theme="dark"] {
     padding-right: 14px;
   }
 
-  .web-tool #converter-screen {
+  .web-tool #converter-screen.active {
     display: block;
   }
 
