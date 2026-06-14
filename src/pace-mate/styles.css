@@ -160,7 +160,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
 }
 
 .head-actions {
@@ -284,8 +284,8 @@ h2 {
 .hero-panel {
   border-color: var(--card-line);
   background: var(--surface);
-  padding: 13px;
-  margin-bottom: 10px;
+  padding: 11px 13px;
+  margin-bottom: 8px;
 }
 
 .metric-pair {
@@ -320,14 +320,14 @@ h2 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 11px;
-  padding-top: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--line);
 }
 
 .dual-readout span {
   min-width: 0;
-  padding: 9px;
+  padding: 7px 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.045);
@@ -513,7 +513,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) 96px;
   gap: 6px;
-  padding: 1px 0 9px;
+  padding: 0 0 6px;
 }
 
 .chip {
@@ -576,7 +576,7 @@ h2 {
 
 .calculator-stack .input-card,
 .calculator-stack .slider-card {
-  padding: 8px 0;
+  padding: 6px 0;
   border: 0;
   border-bottom: 1px solid rgba(229, 235, 243, 0.82);
   border-radius: 0;
@@ -593,7 +593,7 @@ h2 {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-size: 14px;
   font-weight: 850;
 }
@@ -667,16 +667,16 @@ input[type="range"] {
 
 .race-hero {
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .race-hero select {
-  margin-top: 6px;
+  margin-top: 2px;
 }
 
 .race-hero strong {
   color: var(--blue);
-  font-size: 36px;
+  font-size: 30px;
   line-height: 1;
 }
 
@@ -686,7 +686,7 @@ input[type="range"] {
 }
 
 .table-card {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .table-head,
@@ -711,12 +711,12 @@ input[type="range"] {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--line);
 }
 
 .table-row {
-  min-height: 30px;
+  min-height: 26px;
   border-bottom: 1px solid rgba(229, 235, 243, 0.76);
   font-size: 14px;
   font-weight: 760;
@@ -839,7 +839,7 @@ input[type="range"] {
 
 #zone-list {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .zone-row {
@@ -847,8 +847,8 @@ input[type="range"] {
   grid-template-columns: 64px minmax(102px, 1fr) minmax(102px, 1fr);
   align-items: center;
   gap: 6px;
-  min-height: 30px;
-  padding: 5px 8px;
+  min-height: 26px;
+  padding: 4px 8px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
   font-size: 13px;
@@ -1095,11 +1095,11 @@ input[type="range"] {
   }
 
   h1 {
-    font-size: 30px;
+    font-size: 24px;
   }
 
   .metric-pair strong {
-    font-size: 27px;
+    font-size: 26px;
   }
 
   input,
@@ -1297,21 +1297,21 @@ html[data-theme="dark"] {
 
 .web-tool .screen {
   height: calc(100% - 72px);
-  overflow: auto;
-  padding: 26px 26px 22px;
+  overflow: hidden;
+  padding: 18px 24px 14px;
 }
 
 .web-tool .screen-head {
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .web-tool h1 {
-  font-size: 34px;
+  font-size: 28px;
 }
 
 .web-tool .hero-panel {
-  padding: 22px;
-  margin-bottom: 16px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
 }
 
 .web-tool .metric-pair {
@@ -1320,40 +1320,40 @@ html[data-theme="dark"] {
 }
 
 .web-tool .metric-pair strong {
-  margin-top: 8px;
-  font-size: 54px;
+  margin-top: 4px;
+  font-size: 40px;
   letter-spacing: 0;
 }
 
 .web-tool #summary-pace {
-  font-size: 44px;
+  font-size: 32px;
 }
 
 .web-tool .dual-readout {
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
 }
 
 .web-tool .dual-readout strong {
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .web-tool .preset-row {
   grid-template-columns: repeat(4, minmax(82px, 1fr)) minmax(110px, 0.8fr);
   gap: 8px;
-  padding-bottom: 14px;
+  padding-bottom: 8px;
 }
 
 .web-tool .chip,
 .web-tool .preset-select {
-  min-height: 42px;
+  min-height: 36px;
   font-size: 16px;
 }
 
 .web-tool .calculator-stack {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1362,7 +1362,7 @@ html[data-theme="dark"] {
 
 .web-tool .calculator-stack .input-card,
 .web-tool .calculator-stack .slider-card {
-  padding: 16px;
+  padding: 12px 14px;
   border: 1px solid var(--card-line);
   border-radius: 8px;
   background: var(--card-glass);
@@ -1374,7 +1374,7 @@ html[data-theme="dark"] {
 }
 
 .web-tool .input-title {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   font-size: 16px;
 }
 
@@ -1384,8 +1384,8 @@ html[data-theme="dark"] {
 
 .web-tool input,
 .web-tool select {
-  min-height: 46px;
-  font-size: 22px;
+  min-height: 40px;
+  font-size: 20px;
 }
 
 .web-tool .field-row {
@@ -1401,16 +1401,38 @@ html[data-theme="dark"] {
 }
 
 .web-tool .table-row {
-  min-height: 38px;
-  font-size: 16px;
+  min-height: 28px;
+  font-size: 15px;
 }
 
 .web-tool .race-hero strong {
-  font-size: 52px;
+  font-size: 38px;
 }
 
 .web-tool .tabbar {
   border-radius: 0 0 14px 14px;
+}
+
+/* Desktop mockup: use the extra width so the converter fits without scroll —
+   the cheat sheet and training zones sit side by side under the convert grid. */
+.web-tool #converter-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  align-content: start;
+}
+
+.web-tool #converter-screen .screen-head,
+.web-tool #converter-screen .convert-table {
+  grid-column: 1 / -1;
+}
+
+.web-tool #converter-screen .convert-table {
+  margin-bottom: 0;
+}
+
+.web-tool #converter-screen .cheat-card {
+  margin-bottom: 0;
 }
 
 @media (max-width: 1020px) {
@@ -1436,16 +1458,30 @@ html[data-theme="dark"] {
     padding-right: 14px;
   }
 
+  .web-tool #converter-screen {
+    display: block;
+  }
+
+  .web-tool #converter-screen .convert-table,
+  .web-tool #converter-screen .cheat-card {
+    margin-bottom: 6px;
+  }
+
+  .web-tool #converter-screen .table-card,
+  .web-tool #converter-screen .zone-card {
+    padding: 7px 10px;
+  }
+
   .web-tool .calculator-stack {
     display: block;
-    padding: 3px 10px;
+    padding: 2px 10px;
     border: 1px solid var(--card-line);
     background: var(--card-glass);
   }
 
   .web-tool .calculator-stack .input-card,
   .web-tool .calculator-stack .slider-card {
-    padding: 10px 0;
+    padding: 6px 0;
     border: 0;
     border-bottom: 1px solid var(--line);
     border-radius: 0;
@@ -1458,15 +1494,20 @@ html[data-theme="dark"] {
   }
 
   .web-tool .metric-pair strong {
-    font-size: 36px;
+    font-size: 28px;
   }
 
   .web-tool #summary-pace {
-    font-size: 32px;
+    font-size: 24px;
   }
 
   .web-tool .dual-readout {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .web-tool .dual-readout span {
+    padding: 6px;
   }
 
   .web-tool input,
@@ -1510,7 +1551,7 @@ html[data-theme="dark"] {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .predict-row .hint {
@@ -1550,7 +1591,7 @@ html[data-theme="dark"] {
 
 /* Converter: side-by-side metric / imperial grid */
 .convert-table {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .convert-lanes-head,
@@ -1574,7 +1615,7 @@ html[data-theme="dark"] {
 }
 
 .convert-row {
-  padding: 10px 0;
+  padding: 7px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -1609,7 +1650,7 @@ html[data-theme="dark"] {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-top: 10px;
+  padding-top: 7px;
 }
 
 .convert-time-row .convert-label {
@@ -1629,7 +1670,7 @@ html[data-theme="dark"] {
 
 /* Pace cheat sheet */
 .cheat-card {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .cheat-head {
@@ -1653,7 +1694,7 @@ html[data-theme="dark"] {
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 34px;
+  min-height: 26px;
   padding: 0 9px;
   border: 0;
   border-radius: 8px;
