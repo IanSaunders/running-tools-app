@@ -434,6 +434,13 @@
       Object.values(LS).forEach(k => localStorage.removeItem(k));
     }
 
+    // Clears only the OAuth session, keeping the configured client id (and athlete
+    // name) so the user can reconnect in one tap. Used when a session is retired
+    // by another device, as opposed to an explicit disconnect.
+    function clearTokens() {
+      [LS.ACCESS_TOKEN, LS.REFRESH_TOKEN, LS.EXPIRES_AT].forEach(k => localStorage.removeItem(k));
+    }
+
     // ─── Token management ─────────────────────────────────────────────────────
 
     function isTokenExpired() {
@@ -441,14 +448,17 @@
       return (expiresAt - 60) <= Math.floor(Date.now() / 1000);
     }
 
+    // Returns 'ok' | 'rejected' | 'error'.
+    //   'rejected' → the refresh token is no longer valid (e.g. the account was
+    //                connected on another device). The local session is cleared.
+    //   'error'    → a transient/network failure; tokens are kept so a later
+    //                retry can still succeed.
     async function refreshAccessToken() {
       const { refreshToken } = getTokens();
-      if (!refreshToken) {
-        clearAll();
-        return false;
-      }
+      if (!refreshToken) return 'rejected';
+      let res;
       try {
-        const res = await fetch(TOKEN_PROXY, {
+        res = await fetch(TOKEN_PROXY, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -456,20 +466,21 @@
             refresh_token: refreshToken,
           }),
         });
-        if (!res.ok) { clearAll(); return false; }
-        const data = await res.json();
-        saveTokens(data);
-        return true;
       } catch {
-        clearAll();
-        return false;
+        return 'error';
+      }
+      if (!res.ok) { clearTokens(); return 'rejected'; }
+      try {
+        saveTokens(await res.json());
+        return 'ok';
+      } catch {
+        return 'error';
       }
     }
 
     async function ensureValidToken() {
       if (isTokenExpired()) {
-        const ok = await refreshAccessToken();
-        if (!ok) return null;
+        if (await refreshAccessToken() !== 'ok') return null;
       }
       return getTokens().accessToken;
     }
@@ -544,14 +555,19 @@
 
     // ─── Strava API ───────────────────────────────────────────────────────────
 
-    async function stravaGet(path, accessToken) {
+    async function stravaGet(path, accessToken, retried = false) {
       const res = await fetch(`${STRAVA_API}${path}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` },
       });
 
       if (res.status === 401) {
-        clearAll();
-        renderSetup();
+        // The access token was rejected. A clock-valid token returning 401 means
+        // it was retired externally — most often the account was reconnected on
+        // another device. Try one refresh + retry, then fall back to a reconnect.
+        if (!retried && await refreshAccessToken() === 'ok') {
+          return stravaGet(path, getTokens().accessToken, true);
+        }
+        renderReconnect();
         return null;
       }
 
@@ -595,7 +611,7 @@
       while (page <= MAX_PAGES) {
         const activities = await stravaGet(
           `/athlete/activities?per_page=${PAGE_SIZE}&page=${page}`,
-          accessToken
+          getTokens().accessToken
         );
         if (activities === null) return null; // error already rendered
         if (activities.length === 0) break;
@@ -975,6 +991,35 @@
       });
     }
 
+    // Shown when this device's Strava session was retired — typically because the
+    // account was reconnected on another device (Strava keeps one active grant per
+    // account). Offers a one-tap reconnect; the client id is still present.
+    function renderReconnect() {
+      const athleteName = localStorage.getItem(LS.ATHLETE_NAME) || '';
+      document.getElementById('app').innerHTML = `
+        ${header()}
+        <div class="card">
+          <div class="card-title">Reconnect to Strava</div>
+          <div class="notice" style="margin-bottom:1.25rem;border-color:#fbbf24;background:#fffbeb;">
+            <strong>⚠ Your Strava session was used on another device.</strong>
+            Strava keeps a single active connection per account, so connecting elsewhere
+            signed this device out. ${athleteName ? `Reconnect to continue as <strong>${escapeHtml(athleteName)}</strong>.` : 'Reconnect to continue.'}
+          </div>
+          <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">
+            Nothing was lost — this only refreshes the connection on this device.
+          </p>
+          <button class="btn" id="reconnect-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-3.56"/>
+            </svg>
+            Reconnect with Strava
+          </button>
+        </div>
+      `;
+      document.getElementById('reconnect-btn').addEventListener('click', redirectToStravaOAuth);
+    }
+
     function badgeHtml(status) {
       if (status === 'ok')       return `<span class="badge badge-ok">✓ OK</span>`;
       if (status === 'error')    return `<span class="badge badge-error">✗ Error</span>`;
@@ -1191,7 +1236,16 @@
       renderLoading('Fetching your runs…');
 
       try {
-        const token = await ensureValidToken();
+        if (isTokenExpired()) {
+          const status = await refreshAccessToken();
+          if (status === 'rejected') { renderReconnect(); return; }
+          if (status === 'error') {
+            renderError('Could not reach Strava to refresh your session. Check your connection and try again.');
+            return;
+          }
+        }
+
+        const token = getTokens().accessToken;
         if (!token) {
           renderSetup();
           return;
@@ -1200,7 +1254,7 @@
         const runs = await fetchAllRuns(token, name => {
           updateLoadingMsg(`Looking at run: ${name}`);
         });
-        if (runs === null) return; // error already rendered
+        if (runs === null) return; // error/reconnect already rendered
 
         const result = computeStreak(runs);
         renderDashboard(result);
