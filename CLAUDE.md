@@ -48,6 +48,8 @@ Feature-matched with the PaceMate iOS app. Key behaviours to keep in sync with i
 - **Converter**: side-by-side metric/imperial grid (distance/pace/speed editable in both units, prominent Time row) + pace cheat sheet whose 7-row window stays anchored while tapping (re-centres only when pace leaves the window).
 - **Theming**: light by default; `html[data-theme="dark"]` applies a Monokai palette via native CSS nesting. Settings has a System/Light/Dark control; System follows `prefers-color-scheme` live.
 - **Units**: persisted to localStorage; first visit defaults from the browser region (US/GB/LR/MM → imperial).
+### `src/100-miles/` — How Far Is 100 Miles?
+Zoom-out interactive experience (powers-of-ten style) from a GPS watch face (46 mm) to the full Western States 100 course (161.3 km). 8 levels with SVG illustrations, animated count-up numbers, sky transitions, and WS100 course facts. Single self-contained HTML file, no dependencies.
 
 ## Style Conventions
 
