@@ -45,7 +45,24 @@ Register `localhost` as the Authorization Callback Domain in Strava API settings
 STATE_SETUP         → fallback if config.js is missing/empty; enter credentials → redirect to Strava OAuth
 STATE_AUTHING       → detect ?code= in URL → exchange for tokens → dashboard
 STATE_AUTHENTICATED → refresh token if expired → fetch runs → display dashboard
+STATE_RECONNECT     → session retired by another device → renderReconnect() → one-tap re-OAuth
 ```
+
+## Multi-device handling
+
+Strava keeps a single active grant per (athlete, app), so connecting the same
+account on a second device retires this device's tokens. Recovery is graceful
+rather than a dead-end:
+
+- A `401` from the API triggers **one refresh + retry** (`stravaGet(..., retried)`);
+  if the access token was only stale it recovers silently.
+- If the refresh token itself is rejected, `refreshAccessToken()` returns
+  `'rejected'`, `clearTokens()` wipes only the session (keeping the client id),
+  and `renderReconnect()` shows a one-tap reconnect explaining the situation.
+- A network/transient failure returns `'error'` and **keeps** the tokens so a
+  later retry still works — it never silently signs the user out.
+- **Disconnect is local-only** (never calls Strava deauthorize), so signing out
+  one device leaves other devices connected.
 
 ## localStorage Keys
 
@@ -87,6 +104,9 @@ StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistanc
 - `computeStreak(runs)` — groups by local date, walks backward to find streak, two-pass picks one run per day, validates sequence, computes total distance and time
 - `validateStreakNumbers(streakRuns)` — sorts ascending, anchors on most recent numbered run, computes expected offsets, flags mismatches
 - `fetchAllRuns(accessToken, onRun)` — paginates Strava API, filters to run sport types, calls `onRun(name)` per run for loading UI feedback
+- `refreshAccessToken()` — refreshes via the token proxy; returns `'ok' | 'rejected' | 'error'` (rejected = grant retired → session cleared; error = transient → tokens kept)
 - `ensureValidToken()` — refreshes token if within 60s of expiry, returns token string or null
+- `clearTokens()` — clears only the OAuth session (keeps client id) for one-tap reconnect; vs `clearAll()` for a full disconnect
 - `handleOAuthCallback()` — detects `?code=` or `?error=`, exchanges code, cleans URL
-- `stravaGet(path, token)` — handles 401 (clear + re-render setup) and 429 (rate limit message)
+- `stravaGet(path, token, retried)` — on 401 does one refresh + retry, else `renderReconnect()`; 429 → rate-limit message
+- `renderReconnect()` — reconnect screen shown when the session was retired by another device
