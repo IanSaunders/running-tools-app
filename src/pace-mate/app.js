@@ -3,6 +3,24 @@ const MIN_PACE_SEC_KM = 100;
 const MAX_PACE_SEC_KM = 2400;
 const STORAGE_KEY = "pace-mate-state-v1";
 
+// Classic Riegel (^1.06) is calibrated on races up to the marathon. Beyond it,
+// fatigue, fuelling and time on feet bite harder, so ultras use a steeper
+// exponent. Predictions are a ratio of this shared curve, which keeps them
+// consistent in both directions (5K -> 100M and 100M -> 5K).
+const MARATHON_KM = 42.195;
+const RIEGEL_EXPONENT = 1.06;
+const ULTRA_EXPONENT = 1.2;
+
+function enduranceFactor(km) {
+  if (km <= MARATHON_KM) return Math.pow(km, RIEGEL_EXPONENT);
+  return Math.pow(MARATHON_KM, RIEGEL_EXPONENT) * Math.pow(km / MARATHON_KM, ULTRA_EXPONENT);
+}
+
+function riegelPrediction(anchorKm, anchorSeconds, targetKm) {
+  if (anchorKm <= 0 || anchorSeconds <= 0 || targetKm <= 0) return 0;
+  return (anchorSeconds * enduranceFactor(targetKm)) / enduranceFactor(anchorKm);
+}
+
 const races = [
   { name: "400 m", km: 0.4 },
   { name: "800 m", km: 0.8 },
@@ -92,8 +110,25 @@ function storedBoolean(value, fallback) {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function defaultDisplayUnit() {
+  // First visit: follow the browser region — miles for the US/UK (and the
+  // other mile-running regions), kilometres everywhere metric.
+  try {
+    const locale = new Intl.Locale(navigator.language || "en");
+    const region = locale.region ?? locale.maximize().region;
+    return ["US", "GB", "LR", "MM"].includes(region) ? "imperial" : "metric";
+  } catch {
+    return "metric";
+  }
+}
+
 function storedDisplayUnit(value) {
-  return value === "imperial" ? "imperial" : "metric";
+  if (value === "imperial" || value === "metric") return value;
+  return defaultDisplayUnit();
+}
+
+function storedAppearance(value) {
+  return ["system", "light", "dark"].includes(value) ? value : "system";
 }
 
 function storedTargetTimes(value) {
@@ -129,7 +164,9 @@ const state = {
   activeInput: "pace",
   displayUnit: storedDisplayUnit(storedState.displayUnit),
   useTargetsAsDefaults: storedBoolean(storedState.useTargetsAsDefaults, true),
-  targetTimes: storedTargetTimes(storedState.targetTimes)
+  targetTimes: storedTargetTimes(storedState.targetTimes),
+  racePredicted: storedBoolean(storedState.racePredicted, true),
+  appearance: storedAppearance(storedState.appearance)
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -152,7 +189,6 @@ const elements = {
   raceSelect: $("#race-select"),
   currentRaceOption: $("#current-race-option"),
   presetSelect: $("#preset-select"),
-  convertGrid: $(".converter-grid"),
   convertPaceKmMin: $("#convert-pace-km-min"),
   convertPaceKmSec: $("#convert-pace-km-sec"),
   convertPaceMiMin: $("#convert-pace-mi-min"),
@@ -188,7 +224,9 @@ function saveAppState() {
       timeSec: state.timeSec,
       displayUnit: state.displayUnit,
       useTargetsAsDefaults: state.useTargetsAsDefaults,
-      targetTimes: state.targetTimes
+      targetTimes: state.targetTimes,
+      racePredicted: state.racePredicted,
+      appearance: state.appearance
     }));
   } catch {
     // Private browsing or storage quota errors should not break the calculator.
@@ -273,15 +311,6 @@ function formatSplitDistance(km, unit) {
   }
 
   return `${km.toFixed(km >= 10 ? 0 : 1).replace(".0", "")} km`;
-}
-
-function splitDistanceFor(km) {
-  if (km <= 1) return { label: "200 m split", km: 0.2, imperialKm: 0.125 * KM_PER_MILE };
-  if (km <= 2) return { label: "400 m split", km: 0.4, imperialKm: 0.25 * KM_PER_MILE };
-  if (km <= 15) return { label: "1 km split", km: 1, imperialKm: KM_PER_MILE };
-  if (km <= 42.3) return { label: "5 km split", km: 5, imperialKm: 5 * KM_PER_MILE };
-  if (km <= 100) return { label: "10 km split", km: 10, imperialKm: 10 * KM_PER_MILE };
-  return { label: "10 mile split", km: 10 * KM_PER_MILE, imperialKm: 10 * KM_PER_MILE };
 }
 
 function worldRecordPairFor(km) {
@@ -480,19 +509,57 @@ function syncRaceSelect() {
 }
 
 function renderRaceTable() {
+  $("#predict-label").textContent = state.racePredicted ? "Equivalent race times" : "Same pace held";
+  $$(".predict-choice").forEach((button) => {
+    button.classList.toggle("active", (button.dataset.predict === "true") === state.racePredicted);
+  });
+
   const html = compareRaces
     .map((race) => {
-      const time = race.km * state.paceSecKm;
+      const seconds = state.racePredicted
+        ? riegelPrediction(state.distanceKm, state.timeSec, race.km)
+        : race.km * state.paceSecKm;
+      const paceSecKm = seconds / Math.max(race.km, 0.01);
+      const pace = state.displayUnit === "metric"
+        ? `${formatPace(paceSecKm)} / km`
+        : `${formatPace(paceSecKm * KM_PER_MILE)} / mi`;
+      const current = Math.abs(race.km - state.distanceKm) < 0.01;
       return `
-        <div class="table-row">
+        <div class="table-row${current ? " current" : ""}">
           <span>${race.name}</span>
-          <span>${formatDuration(time)}</span>
-          <span>${formatPace(state.paceSecKm)} / km</span>
+          <span>${formatDuration(seconds)}</span>
+          <span>${pace}</span>
         </div>
       `;
     })
     .join("");
   $("#race-table").innerHTML = html;
+}
+
+function racePlanText() {
+  const raceKm = state.distanceKm;
+  const metric = state.displayUnit === "metric";
+  const unitKm = metric ? 1 : KM_PER_MILE;
+  const unitName = metric ? "km" : "mi";
+  const stepUnits = raceKm > 42.3 ? 5 : 1;
+  const stepKm = unitKm * stepUnits;
+
+  const lines = [
+    `Pace Mate race plan — ${raceNameForKm(raceKm)}`,
+    `Goal ${formatDuration(state.timeSec)} · ${formatPace(state.paceSecKm)} /km · ${formatPace(state.paceSecKm * KM_PER_MILE)} /mi`,
+    ""
+  ];
+
+  let units = stepUnits;
+  let markKm = stepKm;
+  while (markKm < raceKm - 0.01) {
+    lines.push(`${units} ${unitName} — ${formatDuration(markKm * state.paceSecKm)}`);
+    units += stepUnits;
+    markKm += stepKm;
+  }
+  lines.push(`Finish — ${formatDuration(state.timeSec)}`);
+
+  return lines.join("\n");
 }
 
 function renderRecordPanel() {
@@ -618,75 +685,46 @@ function setMiniPaceInputs() {
   }
 }
 
-function renderSplitCards() {
-  const split = splitDistanceFor(state.distanceKm);
-  let splitItems;
+// The cheat sheet window stays anchored while tapping rows — only the
+// highlight moves. It re-centres only when the pace leaves the window.
+const CHEAT_STEP = 15;
+const CHEAT_HALF_WINDOW = 3;
+let cheatWindowCenter = null;
 
-  if (state.distanceKm <= 2) {
-    splitItems = [
-      { name: "200 m", km: 0.2 },
-      { name: "400 m", km: 0.4 },
-      { name: "800 m", km: 0.8 }
-    ];
-  } else if (state.distanceKm <= 15) {
-    splitItems = [
-      { name: "400 m", km: 0.4 },
-      { name: "1 km", km: 1 },
-      { name: "1 mile", km: KM_PER_MILE },
-      { name: "5 km", km: 5 }
-    ];
-  } else if (state.distanceKm <= 21.2) {
-    splitItems = [
-      { name: "1 km", km: 1 },
-      { name: "1 mile", km: KM_PER_MILE },
-      { name: "5 km", km: 5 },
-      { name: "10 km", km: 10 }
-    ];
-  } else if (state.distanceKm <= 42.3) {
-    splitItems = [
-      { name: "1 km", km: 1 },
-      { name: "5 km", km: 5 },
-      { name: "10 km", km: 10 },
-      { name: "Half", km: 21.0975 }
-    ];
-  } else if (state.distanceKm <= 50.1) {
-    splitItems = [
-      { name: "5 km", km: 5 },
-      { name: "10 km", km: 10 },
-      { name: "25 km", km: 25 }
-    ];
-  } else if (state.distanceKm <= 100) {
-    splitItems = [
-      { name: "5 km", km: 5 },
-      { name: "10 km", km: 10 },
-      { name: "50 km", km: 50 }
-    ];
-  } else {
-    splitItems = [
-      { name: "10 km", km: 10 },
-      { name: "10 mile", km: 10 * KM_PER_MILE },
-      { name: "50 mile", km: 50 * KM_PER_MILE }
-    ];
+function snappedCheatPace(pace) {
+  return Math.max(Math.round(pace / CHEAT_STEP) * CHEAT_STEP, 120 + CHEAT_STEP * CHEAT_HALF_WINDOW);
+}
+
+function renderCheatSheet() {
+  if (
+    cheatWindowCenter === null ||
+    Math.abs(state.paceSecKm - cheatWindowCenter) > CHEAT_STEP * CHEAT_HALF_WINDOW + CHEAT_STEP / 2
+  ) {
+    cheatWindowCenter = snappedCheatPace(state.paceSecKm);
   }
 
-  const matchingCommonSplit = splitItems.find((item) => Math.abs(item.km - split.km) < 0.001);
-  if (matchingCommonSplit) {
-    matchingCommonSplit.smart = true;
-  } else {
-    splitItems.push({ name: split.label, km: split.km, smart: true });
+  const rows = [];
+  for (let i = -CHEAT_HALF_WINDOW; i <= CHEAT_HALF_WINDOW; i += 1) {
+    rows.push(cheatWindowCenter + i * CHEAT_STEP);
   }
 
-  $("#smart-split-label").textContent = split.label;
-  $("#split-card-grid").innerHTML = splitItems
-    .map((item) => {
+  $("#cheat-sheet").innerHTML = rows
+    .map((pace) => {
+      const current = Math.abs(pace - state.paceSecKm) < CHEAT_STEP / 2;
       return `
-        <div class="split-card${item.smart ? " smart" : ""}">
-          <span>${item.name}</span>
-          <strong>${formatDuration(item.km * state.paceSecKm)}</strong>
-        </div>
+        <button class="cheat-row${current ? " current" : ""}" type="button" data-pace="${pace}">
+          <span>${formatPace(pace)} / km</span>
+          <em>&#8644;</em>
+          <span>${formatPace(pace * KM_PER_MILE)} / mi</span>
+        </button>
       `;
     })
     .join("");
+}
+
+function renderConvertTime() {
+  $("#convert-time").textContent = formatDuration(state.timeSec);
+  $("#convert-time-note").textContent = `${raceNameForKm(state.distanceKm)} · same in both units`;
 }
 
 function renderZones() {
@@ -808,7 +846,8 @@ function render() {
   renderRaceHero();
   renderRaceTable();
   renderRecordPanel();
-  renderSplitCards();
+  renderCheatSheet();
+  renderConvertTime();
   renderZones();
 }
 
@@ -1042,6 +1081,74 @@ elements.convertMi.addEventListener("input", () => {
   scheduleRender();
 });
 
+$$(".predict-choice").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.racePredicted = button.dataset.predict === "true";
+    saveAppState();
+    render();
+  });
+});
+
+$("#share-plan").addEventListener("click", async () => {
+  const text = racePlanText();
+  const button = $("#share-plan");
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch {
+      // Cancelled or unavailable — fall through to clipboard.
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    button.textContent = "Copied!";
+    setTimeout(() => {
+      button.textContent = "Share plan";
+    }, 1600);
+  } catch {
+    // Clipboard unavailable (e.g. insecure context) — nothing else to try.
+  }
+});
+
+$("#cheat-sheet").addEventListener("click", (event) => {
+  const row = event.target.closest(".cheat-row");
+  if (!row) return;
+
+  state.paceSecKm = clamp(numeric(row.dataset.pace, state.paceSecKm), MIN_PACE_SEC_KM, MAX_PACE_SEC_KM);
+  state.activeInput = "pace";
+  recomputeFromPace();
+  setPaceInputs(state.paceSecKm);
+  scheduleRender();
+});
+
+const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme() {
+  const resolved = state.appearance === "system"
+    ? (themeMedia.matches ? "dark" : "light")
+    : state.appearance;
+  document.documentElement.dataset.theme = resolved;
+  $$(".appearance-choice").forEach((button) => {
+    button.classList.toggle("active", button.dataset.appearance === state.appearance);
+  });
+}
+
+themeMedia.addEventListener("change", () => {
+  if (state.appearance === "system") applyTheme();
+});
+
+$$(".appearance-choice").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.appearance = button.dataset.appearance;
+    saveAppState();
+    applyTheme();
+  });
+});
+
+applyTheme();
 initializeControls();
 renderTargetSettings();
 render();
