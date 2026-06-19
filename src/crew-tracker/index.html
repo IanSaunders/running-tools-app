@@ -290,7 +290,7 @@
   // Deploy the script in CLAUDE.md (Extensions → Apps Script → Deploy → Web app) and paste
   // its /exec URL here. Once set, every crew device pushes Adjust +/- min automatically —
   // nobody has to enter anything. A per-device URL on the Data tab overrides this.
-  const SHEET_WRITE_URL = ""; // ← paste the /exec URL here
+  const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbxmOGapx1mlqfbX-Qx3MGv1J5rhwgu_h-j9_ce1JIl4wrdokc_lJgw_1vWulQAlGbEaFA/exec";
   const writeEndpoint = () => (state.writeUrl && state.writeUrl.trim()) || SHEET_WRITE_URL;
 
   // Stops where the crew physically has access (drives the "Next crew stop" card).
