@@ -635,6 +635,72 @@
       </div>
     </a>
 
+    <!-- ── Crew Tracker ── -->
+    <a href="crew-tracker/index.html" class="tool-card">
+      <div class="tool-preview">
+        <!-- Crew tracker preview: projected finish + next crew stop + upcoming splits -->
+        <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+          <rect width="640" height="360" fill="#f9fafb"/>
+          <rect x="0" y="0" width="640" height="52" fill="#ffffff"/>
+          <circle cx="32" cy="26" r="10" fill="#e57a32"/>
+          <rect x="52" y="18" width="170" height="13" rx="3" fill="#22272E"/>
+          <rect x="52" y="35" width="96" height="8" rx="2" fill="#e5e7eb"/>
+
+          <!-- Hero projected finish card (dark) -->
+          <rect x="40" y="72" width="296" height="128" rx="12" fill="#22272E"/>
+          <text x="64" y="104" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="800" fill="#9aa0a8" letter-spacing="1.4">PROJECTED FINISH</text>
+          <text x="64" y="156" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="46" font-weight="900" fill="#ffffff">19:50</text>
+          <rect x="208" y="120" width="112" height="30" rx="15" fill="#fef2f2"/>
+          <text x="264" y="140" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="800" fill="#dc2626">+20 behind</text>
+          <text x="64" y="184" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="600" fill="#c7ccd2">last in Robinson Flat · mile 30.3</text>
+
+          <!-- Next crew stop card -->
+          <rect x="40" y="212" width="296" height="116" rx="12" fill="#ffffff" stroke="#e57a32" stroke-width="1.5"/>
+          <text x="64" y="240" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="800" fill="#6b7280" letter-spacing="1.4">NEXT CREW STOP</text>
+          <path d="M70 256a9 9 0 0 0-9 9c0 6 9 15 9 15s9-9 9-15a9 9 0 0 0-9-9z" fill="none" stroke="#e57a32" stroke-width="2.2"/>
+          <circle cx="70" cy="265" r="3" fill="#e57a32"/>
+          <text x="90" y="270" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="19" font-weight="850" fill="#22272E">Michigan Bluff</text>
+          <text x="90" y="290" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="600" fill="#6b7280">Mile 55.7 · ETA 3:45 PM</text>
+          <rect x="64" y="302" width="120" height="16" rx="4" fill="#f3f4f6"/>
+          <rect x="196" y="302" width="120" height="16" rx="4" fill="#f3f4f6"/>
+
+          <!-- Upcoming splits (right) -->
+          <rect x="356" y="72" width="244" height="256" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+          <text x="378" y="100" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="800" fill="#6b7280" letter-spacing="1.4">UPCOMING</text>
+          <g font-family="-apple-system,BlinkMacSystemFont,sans-serif">
+            <line x1="376" y1="116" x2="580" y2="116" stroke="#f0f0ef"/>
+            <text x="378" y="138" font-size="13" font-weight="700" fill="#22272E">Michigan Bluff</text>
+            <text x="580" y="138" text-anchor="end" font-size="13" font-weight="800" fill="#22272E">3:45 PM</text>
+            <line x1="376" y1="152" x2="580" y2="152" stroke="#f0f0ef"/>
+            <text x="378" y="174" font-size="13" font-weight="700" fill="#22272E">Foresthill</text>
+            <text x="580" y="174" text-anchor="end" font-size="13" font-weight="800" fill="#22272E">5:00 PM</text>
+            <line x1="376" y1="188" x2="580" y2="188" stroke="#f0f0ef"/>
+            <text x="378" y="210" font-size="13" font-weight="700" fill="#22272E">Rucky Chucky</text>
+            <text x="580" y="210" text-anchor="end" font-size="13" font-weight="800" fill="#22272E">8:05 PM</text>
+            <line x1="376" y1="224" x2="580" y2="224" stroke="#f0f0ef"/>
+            <text x="378" y="246" font-size="13" font-weight="700" fill="#22272E">Hwy 49</text>
+            <text x="580" y="246" text-anchor="end" font-size="13" font-weight="800" fill="#22272E">11:20 PM</text>
+            <line x1="376" y1="260" x2="580" y2="260" stroke="#f0f0ef"/>
+            <text x="378" y="284" font-size="13" font-weight="800" fill="#e57a32">Finish</text>
+            <text x="580" y="284" text-anchor="end" font-size="13" font-weight="900" fill="#e57a32">12:50 AM</text>
+            <line x1="376" y1="298" x2="580" y2="298" stroke="#f0f0ef"/>
+            <text x="378" y="318" font-size="11" font-weight="600" fill="#9ca3af">100.2 mi · plan 19:30</text>
+          </g>
+        </svg>
+      </div>
+      <div class="tool-body">
+        <p class="tool-tag">Race Day</p>
+        <h2 class="tool-title">Crew Tracker</h2>
+        <p class="tool-description">A mobile crew companion for the Western States 100. Log aid-station splits from the live tracker, watch the projected finish update in real time, and see exactly what pace the runner needs for each goal — backed by a Google Sheet.</p>
+        <span class="tool-cta">
+          Open tool
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="#22272E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </div>
+    </a>
+
   </main>
 
 

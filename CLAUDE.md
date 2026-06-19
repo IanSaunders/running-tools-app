@@ -19,11 +19,14 @@ src/
 ├── run-speed/
 │   ├── index.html        ← Pace & speed calculator app
 │   └── CLAUDE.md         ← Full architecture notes for run-speed
-└── pace-mate/
-    ├── index.html        ← Web companion to the PaceMate iOS app (4 tabs)
-    ├── app.js            ← All logic; state persisted to localStorage
-    ├── styles.css        ← Light theme + scoped Monokai dark theme
-    └── about.html        ← About / iOS download page
+├── pace-mate/
+│   ├── index.html        ← Web companion to the PaceMate iOS app (4 tabs)
+│   ├── app.js            ← All logic; state persisted to localStorage
+│   ├── styles.css        ← Light theme + scoped Monokai dark theme
+│   └── about.html        ← About / iOS download page
+└── crew-tracker/
+    ├── index.html        ← Western States 100 crew tracker (mobile-first, 4 tabs)
+    └── CLAUDE.md         ← Course model, projection engine & Google Sheet wiring
 ```
 
 ## Running Locally
@@ -50,6 +53,9 @@ Feature-matched with the PaceMate iOS app. Key behaviours to keep in sync with i
 - **Units**: persisted to localStorage; first visit defaults from the browser region (US/GB/LR/MM → imperial).
 ### `src/100-miles/` — How Far Is 100 Miles?
 Zoom-out interactive experience (powers-of-ten style) from a GPS watch face (46 mm) to the full Western States 100 course (161.3 km). 8 levels with SVG illustrations, animated count-up numbers, sky transitions, and WS100 course facts. Single self-contained HTML file, no dependencies.
+
+### `src/crew-tracker/` — Western States 100 Crew Tracker
+Mobile-first race-day tool for crew, hardcoded to a specific Google Sheet ("Crew - app" tab) as its data store. The sheet's ETA column is the runner's pace plan and drives the live finish projection; logging an aid-station split carries the delta forward to every downstream stop. Shows next-crew-stop "Have ready"/"Goal" info, a manual position stepper for when the tracker is quiet, and required-pace tables for any goal time. Reads live via the public gviz CSV endpoint; writes `Adjust +/- min` back through a hardcoded Apps Script web-app endpoint (`SHEET_WRITE_URL`). See `crew-tracker/CLAUDE.md`.
 
 ## Style Conventions
 

@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <title>Crew Tracker — Western States 100</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #e57a32;
+      --orange-dark: #cf6a26;
+      --green: #16a34a;
+      --green-bg: #ecfdf3;
+      --red: #dc2626;
+      --red-bg: #fef2f2;
+      --amber: #b45309;
+      --amber-bg: #fffbeb;
+      --bg: #FBFAFA;
+      --card: #ffffff;
+      --border: #e8e8e8;
+      --text: #22272E;
+      --text-muted: #73737D;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 6px 16px -8px rgba(0,0,0,0.12);
+      --radius: 14px;
+    }
+
+    html { font-size: 100%; -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+
+    .wrap { max-width: 640px; margin: 0 auto; padding: 0 1rem; }
+
+    /* ── Header ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(251,250,250,0.92);
+      backdrop-filter: saturate(180%) blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding-top: env(safe-area-inset-top);
+    }
+    .topbar-inner {
+      max-width: 640px; margin: 0 auto;
+      padding: 0.7rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .brand-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--orange); flex-shrink: 0; }
+    .topbar h1 { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; }
+    .topbar .sub { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+    .topbar .sub .dot { color: var(--green); }
+    .topbar .sub .dot.stale { color: var(--amber); }
+    .topbar .sub .dot.off { color: var(--red); }
+    .home-link { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
+    .home-link:hover { color: var(--text); }
+
+    main { padding: 1rem 0 2rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.1rem 1.15rem;
+      margin-bottom: 0.9rem;
+    }
+    .card-label {
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;
+    }
+
+    /* ── Hero status ── */
+    .hero { background: linear-gradient(160deg, #2a2f37 0%, #22272E 100%); color: #fff; border: none; }
+    .hero .card-label { color: rgba(255,255,255,0.55); }
+    .hero-finish { font-size: 3rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+    .hero-clock { font-size: 1rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-top: 0.35rem; }
+    .hero-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.3rem 0.6rem; border-radius: 999px;
+      font-size: 0.8rem; font-weight: 800; white-space: nowrap;
+    }
+    .badge.ahead { background: var(--green-bg); color: var(--green); }
+    .badge.behind { background: var(--red-bg); color: var(--red); }
+    .badge.even { background: rgba(255,255,255,0.15); color: #fff; }
+    .hero-last { margin-top: 0.9rem; padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,0.13);
+      font-size: 0.85rem; color: rgba(255,255,255,0.82); display: flex; justify-content: space-between; gap: 0.5rem; }
+    .hero-last b { color: #fff; font-weight: 700; }
+
+    /* ── Next crew stop ── */
+    .crew-card { border-color: var(--orange); border-width: 1.5px; }
+    .crew-top { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.65rem; }
+    .crew-top .pin { color: var(--orange); }
+    .crew-name { font-size: 1.35rem; font-weight: 850; letter-spacing: -0.02em; line-height: 1.05; }
+    .crew-mile { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    .crew-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 0.3rem; }
+    .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.7rem; }
+    .stat .k { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+    .stat .v { font-size: 1.25rem; font-weight: 850; letter-spacing: -0.01em; margin-top: 0.15rem; }
+    .stat .v small { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
+    .haveready { margin-top: 0.75rem; background: #fff7f1; border: 1px solid #f6dcc6; border-radius: 10px; padding: 0.6rem 0.7rem; }
+    .haveready .k { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--orange); }
+    .haveready .v { font-size: 0.92rem; font-weight: 600; margin-top: 0.15rem; line-height: 1.45; }
+    .stopgoal { margin-top: 0.55rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; }
+    .stopgoal b { color: var(--text); font-weight: 700; }
+
+    /* ── Position stepper ── */
+    .pos-row { display: flex; align-items: center; gap: 0.6rem; }
+    .pos-mid { flex: 1; text-align: center; min-width: 0; }
+    .pos-where { font-weight: 850; font-size: 1.05rem; letter-spacing: -0.01em; line-height: 1.1; }
+    .pos-sub { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 0.15rem; }
+    .posbtn { border: 1px solid var(--orange); background: var(--orange); color: #fff; border-radius: 10px;
+      padding: 0.5rem 0.7rem; font-size: 0.78rem; font-weight: 800; cursor: pointer; font-family: inherit; line-height: 1.05; white-space: nowrap; }
+    .posbtn.ghost { background: var(--card); color: var(--text); border-color: var(--border); }
+    .posbtn[disabled] { opacity: 0.4; pointer-events: none; }
+    .posbtn:active { transform: translateY(1px); }
+
+    /* ── Station rows ── */
+    .rows { display: flex; flex-direction: column; }
+    .srow {
+      display: grid; grid-template-columns: auto 1fr auto auto; align-items: center;
+      gap: 0.6rem; padding: 0.7rem 0.2rem; border-top: 1px solid var(--border); cursor: pointer;
+    }
+    .srow:first-child { border-top: none; }
+    .srow .mi { font-variant-numeric: tabular-nums; font-size: 0.72rem; color: var(--text-muted); font-weight: 700; width: 3.1rem; }
+    .srow .nm { font-weight: 700; font-size: 0.92rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+    .srow .nm .crewtag { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; color: var(--orange);
+      border: 1px solid var(--orange); border-radius: 5px; padding: 0.05rem 0.25rem; }
+    .srow .nm .donetag { font-size: 0.58rem; font-weight: 800; color: var(--green); }
+    .srow .proj { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+    .srow .proj .day { font-size: 0.6rem; color: var(--text-muted); font-weight: 700; }
+    .srow .delta { text-align: right; font-size: 0.75rem; font-weight: 800; font-variant-numeric: tabular-nums; width: 3.4rem; }
+    .delta.ahead { color: var(--green); }
+    .delta.behind { color: var(--red); }
+    .delta.even { color: var(--text-muted); }
+
+    .srow.done { opacity: 0.62; }
+    .srow.next { background: var(--amber-bg); margin: 0 -0.5rem; padding-left: 0.7rem; padding-right: 0.7rem; border-radius: 8px; }
+
+    /* expand editor */
+    .editor { padding: 0.4rem 0.2rem 0.9rem; border-top: 1px dashed var(--border); }
+    .editor .info { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.7rem; }
+    .editor .info b { color: var(--text); }
+    .editor-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field label { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+    .field input {
+      font-size: 1rem; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 9px;
+      background: var(--card); color: var(--text); font-family: inherit; width: 7.5rem;
+    }
+    .field input[type=time] { width: 8.5rem; }
+    .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+    .stepper button { width: 2.4rem; height: 2.5rem; border: none; background: var(--card); font-size: 1.2rem; font-weight: 700; color: var(--text); cursor: pointer; }
+    .stepper button:active { background: var(--bg); }
+    .stepper input { width: 3.6rem; border: none; border-left: 1px solid var(--border); border-right: 1px solid var(--border); text-align: center; font-size: 1rem; padding: 0.5rem 0; font-weight: 800; font-family: inherit; }
+    .btn {
+      border: none; border-radius: 9px; padding: 0.55rem 0.9rem; font-size: 0.85rem; font-weight: 800;
+      cursor: pointer; font-family: inherit; background: var(--orange); color: #fff;
+    }
+    .btn.ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn.block { width: 100%; padding: 0.8rem; font-size: 0.95rem; margin-top: 0.7rem; }
+    .btn:active { transform: translateY(1px); }
+    .btn[disabled] { opacity: 0.5; pointer-events: none; }
+    .editor-actions { display: flex; gap: 0.5rem; margin-top: 0.8rem; flex-wrap: wrap; }
+
+    /* ── Pace targets ── */
+    .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+    .chip {
+      border: 1px solid var(--border); background: var(--card); border-radius: 999px;
+      padding: 0.5rem 0.85rem; font-size: 0.85rem; font-weight: 800; cursor: pointer; font-family: inherit; color: var(--text);
+    }
+    .chip.active { background: var(--orange); color: #fff; border-color: var(--orange); }
+    .buckle-note { font-size: 0.78rem; color: var(--text-muted); margin: -0.2rem 0 0.9rem; line-height: 1.5; }
+    table.splits { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    table.splits th { text-align: right; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 800; padding: 0.4rem 0.3rem; border-bottom: 1px solid var(--border); }
+    table.splits th:first-child, table.splits td:first-child { text-align: left; }
+    table.splits td { padding: 0.5rem 0.3rem; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+    table.splits tr.crewrow td { background: #fff7f1; }
+    table.splits .stname { font-weight: 700; }
+    table.splits .pace { font-weight: 800; }
+    .from-here { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .from-here input { width: 1.1rem; height: 1.1rem; accent-color: var(--orange); }
+    .from-here label { font-size: 0.85rem; font-weight: 700; }
+
+    .help { font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; }
+    .help code { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 0.05rem 0.35rem; font-size: 0.74rem; }
+    .help a { color: var(--orange); font-weight: 700; }
+
+    .status-line { font-size: 0.78rem; font-weight: 700; margin-top: 0.55rem; }
+    .status-line.ok { color: var(--green); }
+    .status-line.err { color: var(--red); }
+    .status-line.muted { color: var(--text-muted); }
+
+    .setting { margin-bottom: 1rem; }
+    .setting label.lab { display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.35rem; }
+    .setting input[type=text], .setting input[type=time], .setting input[type=date] {
+      width: 100%; font-size: 1rem; padding: 0.65rem 0.7rem; border: 1px solid var(--border);
+      border-radius: 10px; background: var(--card); color: var(--text); font-family: inherit;
+    }
+    .sheet-chip { display: flex; align-items: center; gap: 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.7rem; margin-bottom: 0.8rem; }
+    .sheet-chip .nm { font-weight: 800; font-size: 0.85rem; }
+    .sheet-chip .sub { font-size: 0.72rem; color: var(--text-muted); }
+    .sheet-chip a { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--orange); text-decoration: none; white-space: nowrap; }
+    .row2 { display: flex; gap: 0.6rem; }
+    .row2 > * { flex: 1; }
+
+    /* ── Bottom tab bar ── */
+    .tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+      background: rgba(255,255,255,0.94); backdrop-filter: saturate(180%) blur(10px);
+      border-top: 1px solid var(--border);
+      display: flex; padding-bottom: env(safe-area-inset-bottom);
+    }
+    .tabbar button {
+      flex: 1; background: none; border: none; padding: 0.6rem 0.2rem 0.55rem; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+      color: var(--text-muted); font-family: inherit; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.02em;
+    }
+    .tabbar button.active { color: var(--orange); }
+    .tabbar button svg { width: 22px; height: 22px; }
+
+    .empty { text-align: center; color: var(--text-muted); padding: 2rem 1rem; font-size: 0.9rem; line-height: 1.6; }
+    .hidden { display: none !important; }
+    .sectiontitle { font-size: 0.95rem; font-weight: 850; margin: 0.2rem 0 0.7rem; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand-dot"></span>
+      <div>
+        <h1 id="raceTitle">Western States 100</h1>
+        <div class="sub" id="raceSub">Crew tracker</div>
+      </div>
+      <a href="../index.html" class="home-link">All tools</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="view-track"></section>
+    <section id="view-pace" class="hidden"></section>
+    <section id="view-splits" class="hidden"></section>
+    <section id="view-data" class="hidden"></section>
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button data-tab="track" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      Track
+    </button>
+    <button data-tab="pace">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13l4-4M12 5V3M9 3h6"/></svg>
+      Pace
+    </button>
+    <button data-tab="splits">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      Splits
+    </button>
+    <button data-tab="data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6c0-1.7 4-3 9-3s9 1.3 9 3-4 3-9 3-9-1.3-9-3z"/><path d="M3 6v6c0 1.7 4 3 9 3s9-1.3 9-3V6"/><path d="M3 12v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+      Data
+    </button>
+  </nav>
+
+  <script>
+  /* ===========================================================================
+     HARDCODED DATA STORE — Google Sheet "Crew - app" tab.
+     Read live (public gviz CSV) on load; an embedded snapshot makes the app
+     work instantly and offline. Columns:
+       Mile | Crew Stop | ETA | Leave By | Adjust +/- min | Total Adj min |
+       Stop Goal | Have Ready | Crew Notes
+     The ETA column is the runner's own pace plan and drives all projections.
+     =========================================================================== */
+  const SHEET = {
+    id:   "1WInynSPvtb-TxcRhBhdyVjQ3_XnVHmPPEU_BXfLRdWw",
+    gid:  "354419833",
+    tab:  "Crew - app",
+  };
+  const SHEET_EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET.id}/edit?gid=${SHEET.gid}`;
+  const SHEET_CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET.id}/gviz/tq?tqx=out:csv&gid=${SHEET.gid}`;
+  // Hardcoded write endpoint: the Apps Script web-app /exec URL bound to this sheet.
+  // Deploy the script in CLAUDE.md (Extensions → Apps Script → Deploy → Web app) and paste
+  // its /exec URL here. Once set, every crew device pushes Adjust +/- min automatically —
+  // nobody has to enter anything. A per-device URL on the Data tab overrides this.
+  const SHEET_WRITE_URL = ""; // ← paste the /exec URL here
+  const writeEndpoint = () => (state.writeUrl && state.writeUrl.trim()) || SHEET_WRITE_URL;
+
+  // Stops where the crew physically has access (drives the "Next crew stop" card).
+  const CREW_ACCESS = ["start", "robinson", "michigan", "foresthill", "rucky", "green gate", "highway 49", "finish"];
+  const isCrew = (name) => { const n = (name||"").toLowerCase(); return CREW_ACCESS.some(k => n.includes(k)); };
+
+  // Embedded snapshot of "Crew - app" (offline default; refreshed from live sheet on load).
+  const SHEET_SNAPSHOT = [
+    { mile:0,     name:"Start - Olympic Valley",     eta:"Sat 5:00 AM",  leaveBy:"Sat 5:00 AM",  stopGoal:"Calm start; no hero pace.",                    haveReady:"Start kit, bottles, breakfast/caffeine plan.",                 notes:"" },
+    { mile:15.8,  name:"Red Star Ridge",             eta:"Sat 8:05 AM",  leaveBy:"Sat 8:07 AM",  stopGoal:"Early check; keep stop short.",                haveReady:"Fluids, quick calories, sunscreen/cooling if needed.",         notes:"" },
+    { mile:30.3,  name:"Robinson Flat",              eta:"Sat 10:50 AM", leaveBy:"Sat 10:56 AM", stopGoal:"Major reset; keep stop efficient.",            haveReady:"Bottles, calories, ice/cooling, lube/socks if needed.",        notes:"" },
+    { mile:38,    name:"Dusty Corners",              eta:"Sat 12:15 PM", leaveBy:"Sat 12:19 PM", stopGoal:"Cool aggressively; send out eating/drinking.", haveReady:"Ice, cold fluids, calories, hat/bandana cooling.",             notes:"" },
+    { mile:47.8,  name:"Devil's Thumb",              eta:"Sat 2:10 PM",  leaveBy:"Sat 2:14 PM",  stopGoal:"Short controlled stop after climb.",           haveReady:"Cooling, fluids, calories, quick status check.",               notes:"" },
+    { mile:55.7,  name:"Michigan Bluff",             eta:"Sat 3:45 PM",  leaveBy:"Sat 3:50 PM",  stopGoal:"Crew reset; prepare for Foresthill/pacer.",    haveReady:"Bottles, calories, cooling, stomach check.",                   notes:"" },
+    { mile:62,    name:"Foresthill",                 eta:"Sat 5:00 PM",  leaveBy:"Sat 5:08 PM",  stopGoal:"Major reset; launch with pacer.",              haveReady:"Headlamp/night kit, pacer handoff, calories, fluids, cooling.",notes:"" },
+    { mile:70.7,  name:"Peachstone / Cal 2",         eta:"Sat 6:40 PM",  leaveBy:"Sat 6:43 PM",  stopGoal:"Keep moving; avoid lingering.",                haveReady:"Quick refill, calories, cooling if needed.",                   notes:"" },
+    { mile:78,    name:"Rucky Chucky Far",           eta:"Sat 8:05 PM",  leaveBy:"Sat 8:10 PM",  stopGoal:"River prep; quick and calm.",                  haveReady:"Refill bottles, warm layer if needed, follow crossing instructions.", notes:"" },
+    { mile:79.8,  name:"Green Gate",                 eta:"Sat 8:30 PM",  leaveBy:"Sat 8:35 PM",  stopGoal:"Post-river reset.",                            haveReady:"Dry socks/shoes if useful, bottles, calories, lights check.",  notes:"" },
+    { mile:85.2,  name:"Auburn Lake Trails",         eta:"Sat 9:35 PM",  leaveBy:"Sat 9:40 PM",  stopGoal:"Night check; keep moving.",                    haveReady:"Calories, caffeine only if planned, fluids, warm layer option.",notes:"" },
+    { mile:90.7,  name:"Quarry Road",                eta:"Sat 10:45 PM", leaveBy:"Sat 10:48 PM", stopGoal:"Very quick in/out.",                           haveReady:"Final fluids/calories; remind last runnable push.",            notes:"" },
+    { mile:93.5,  name:"Highway 49",                 eta:"Sat 11:20 PM", leaveBy:"Sat 11:23 PM", stopGoal:"Assess and reassure.",                         haveReady:"Stomach check, lights check, climb/run reminder.",             notes:"" },
+    { mile:94.3,  name:"Pointed Rocks",              eta:"Sat 11:25 PM", leaveBy:"Sat 11:28 PM", stopGoal:"Last reset; commit to finish.",                haveReady:"Final sip/calories, confidence, nothing complicated.",         notes:"" },
+    { mile:99.5,  name:"Robie Point",                eta:"Sun 12:20 AM", leaveBy:"Sun 12:20 AM", stopGoal:"Power up, then run home.",                      haveReady:"Encouragement only; no long stop.",                            notes:"" },
+    { mile:100.2, name:"Finish - Placer HS Track",   eta:"Sun 12:30 AM", leaveBy:"Sun 12:30 AM", stopGoal:"Finish.",                                      haveReady:"Meet at finish.",                                              notes:"" },
+  ];
+
+  /* ── Course (rebuilt from sheet rows) ──────────────────────────────────── */
+  const WD = { sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6 };
+  // "Sat 5:00 AM" -> { wd, tod(minutes) }   (wd null if no weekday present)
+  function parseDayTime(s) {
+    if (!s) return null;
+    const m = String(s).toLowerCase().match(/(sun|mon|tue|wed|thu|fri|sat)?\s*(\d{1,2}):(\d{2})\s*(am|pm)/);
+    if (!m) return null;
+    let h = (+m[2]) % 12; if (m[4] === "pm") h += 12;
+    return { wd: m[1] != null ? WD[m[1]] : null, tod: h * 60 + (+m[3]) };
+  }
+  let COURSE = { name:"Western States 100", distance:100.2, stations:[] };
+  let PLAN_FINISH = 0;
+
+  function buildCourse(rows) {
+    const startDT = parseDayTime(rows[0].eta) || { wd:6, tod:300 };
+    const stations = rows.map(r => {
+      const dt = parseDayTime(r.eta);
+      let planned = 0;
+      if (dt) {
+        const dayDiff = dt.wd == null ? 0 : ((dt.wd - startDT.wd + 7) % 7);
+        planned = dayDiff * 1440 + dt.tod - startDT.tod;
+      }
+      return {
+        name: r.name, mile: +r.mile, crew: isCrew(r.name),
+        etaText: r.eta, leaveBy: r.leaveBy, plannedElapsed: planned,
+        stopGoal: r.stopGoal || "", haveReady: r.haveReady || "", crewNotes: r.notes || "",
+      };
+    });
+    COURSE = { name:"Western States 100", distance:+rows[rows.length-1].mile, stations };
+    PLAN_FINISH = stations[stations.length - 1].plannedElapsed;
+    // start time-of-day from the plan, unless the user overrode it
+    if (!state.startTimeUserSet) state.startTime = pad(Math.floor(startDT.tod/60)) + ":" + pad(startDT.tod%60);
+  }
+
+  /* ── State ─────────────────────────────────────────────────────────────── */
+  const STORE_KEY = "ws-crew-state-v2";
+  const defaultState = () => ({
+    runnerName: "",
+    goalMin: null,              // null => use the sheet plan finish
+    startDate: "2026-06-27",    // WS 2026 race day (Saturday)
+    startTime: "05:00",
+    startTimeUserSet: false,
+    stations: {},               // name -> { adjust:minutes, actual:elapsedMinutes|null }
+    writeUrl: "",               // Apps Script web-app URL (optional)
+    paceGoalMin: null,          // selected goal on Pace tab (null => plan)
+    paceFromHere: false,
+    lastSync: 0,
+  });
+  let state = load();
+  let activeTab = "track";
+  let expanded = null;
+  let flash = null;   // {name, msg, kind} — transient status shown in a station editor after Save
+
+  function load() {
+    try { const raw = localStorage.getItem(STORE_KEY); if (raw) return Object.assign(defaultState(), JSON.parse(raw)); } catch (e) {}
+    return defaultState();
+  }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function stStation(name) { if (!state.stations[name]) state.stations[name] = { adjust:0, actual:null }; return state.stations[name]; }
+  function goal() { return state.goalMin || PLAN_FINISH; }
+  function paceGoal() { return state.paceGoalMin || PLAN_FINISH; }
+
+  // Move the runner's current position forward/back without needing a logged time.
+  // Forward marks the next stop "reached"; back clears the furthest reached/timed stop.
+  function advanceRunner(dir) {
+    const p = project();
+    if (dir > 0) {
+      const ni = p.lastDoneIdx + 1;
+      if (ni < COURSE.stations.length) { const ss = stStation(COURSE.stations[ni].name); if (ss.actual == null) ss.reached = true; }
+    } else if (p.lastDoneIdx >= 0) {
+      const ss = stStation(COURSE.stations[p.lastDoneIdx].name); ss.reached = false; ss.actual = null;
+    }
+    save(); expanded = null; flash = null; render(); openTab(activeTab);
+  }
+
+  /* ── Time helpers ──────────────────────────────────────────────────────── */
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function fmtElapsed(min) {
+    if (min == null || isNaN(min)) return "—";
+    const neg = min < 0; min = Math.abs(Math.round(min));
+    return (neg ? "-" : "") + Math.floor(min / 60) + ":" + pad(min % 60);
+  }
+  function fmtDelta(min) {
+    if (min == null || isNaN(min)) return "—";
+    const r = Math.round(min); if (r === 0) return "even";
+    return (r > 0 ? "+" : "") + r;
+  }
+  function fmtPace(p) {
+    if (p == null || isNaN(p) || !isFinite(p)) return "—";
+    const m = Math.floor(p), s = Math.round((p - m) * 60);
+    return (s === 60 ? (m+1) + ":00" : m + ":" + pad(s));
+  }
+  function startDate() {
+    const [hh, mm] = (state.startTime || "05:00").split(":").map(Number);
+    let d;
+    if (state.startDate) { const [y,mo,da] = state.startDate.split("-").map(Number); d = new Date(y, mo-1, da); }
+    else { d = new Date(); }
+    d.setHours(hh, mm, 0, 0); return d;
+  }
+  function clockFromElapsed(min) {
+    if (min == null || isNaN(min)) return { time:"—", day:"" };
+    const d = new Date(startDate().getTime() + min * 60000);
+    let h = d.getHours(); const m = d.getMinutes();
+    const ap = h >= 12 ? "PM" : "AM"; h = h % 12; if (h === 0) h = 12;
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    return { time: h + ":" + pad(m) + " " + ap, day: dayNames[d.getDay()] };
+  }
+  function elapsedFromClock(hhmm, nearElapsed) {
+    if (!hhmm) return null;
+    const [hh, mm] = hhmm.split(":").map(Number);
+    const base = new Date(startDate()); base.setHours(hh, mm, 0, 0);
+    let best = null, bestErr = Infinity;
+    for (let dayOff = 0; dayOff <= 2; dayOff++) {
+      const cand = (base.getTime() + dayOff*86400000 - startDate().getTime()) / 60000;
+      if (cand < -1) continue;
+      const err = Math.abs(cand - (nearElapsed ?? 0));
+      if (err < bestErr) { bestErr = err; best = cand; }
+    }
+    return best == null ? null : Math.round(best);
+  }
+  function clock24FromElapsed(min) {
+    const d = new Date(startDate().getTime() + min*60000);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  /* ── Plan / projection engine ──────────────────────────────────────────── */
+  function plannedSplits() { return COURSE.stations.map(s => s.plannedElapsed); }
+
+  // Full projection: actuals override and carry forward; per-stop adjust carries forward.
+  function project() {
+    const planned = plannedSplits();
+    const rows = []; let runningOffset = 0; let lastDoneIdx = -1;
+    COURSE.stations.forEach((s, i) => {
+      const ss = state.stations[s.name] || { adjust:0, actual:null, reached:false };
+      let projected;
+      if (ss.actual != null) { projected = ss.actual; runningOffset = projected - planned[i]; }
+      else { projected = planned[i] + runningOffset + (ss.adjust || 0); if (ss.adjust) runningOffset += ss.adjust; }
+      const done = ss.actual != null || !!ss.reached;
+      if (done) lastDoneIdx = i;
+      rows.push({ idx:i, station:s, planned:planned[i], projected, actual:ss.actual, adjust:ss.adjust||0,
+        delta:projected - planned[i], isDone:done, timed:ss.actual != null, reached:!!ss.reached });
+    });
+    const nextIdx = lastDoneIdx + 1 < rows.length ? lastDoneIdx + 1 : rows.length - 1;
+    rows.forEach(r => r.isCurrent = (r.idx === nextIdx && lastDoneIdx < rows.length - 1));
+    // incremental adjust at each stop (what gets written to "Adjust +/- min")
+    let prevDelta = 0;
+    rows.forEach(r => { r.incAdjust = Math.round(r.delta - prevDelta); prevDelta = r.delta; });
+    return { rows, lastDoneIdx, nextIdx };
+  }
+
+  /* ── Rendering ─────────────────────────────────────────────────────────── */
+  const $ = (s, r=document) => r.querySelector(s);
+  function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function deltaClass(min) { if (min == null || isNaN(min)) return "even"; const r = Math.round(min); return r > 0 ? "behind" : r < 0 ? "ahead" : "even"; }
+  function goalLabel(min) { const h = Math.floor(min/60), m = min%60; return m === 0 ? h + ":00" : h + ":" + pad(m); }
+  function parseHM(s) {
+    const m = String(s).trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) { const n = parseFloat(s); return isNaN(n)?null:Math.round(n*60); }
+    return (+m[1])*60 + (+m[2]);
+  }
+
+  function render() {
+    renderTrack(); renderPace(); renderSplits(); renderData();
+    const sync = state.lastSync
+      ? `<span class="dot">●</span> Synced ${clockFromAbs(state.lastSync)}`
+      : `<span class="dot off">●</span> Using saved plan`;
+    $("#raceSub").innerHTML = (state.runnerName ? esc(state.runnerName) + " · " : "") + sync;
+  }
+  function clockFromAbs(ts) {
+    const d = new Date(ts); let h = d.getHours(); const m = d.getMinutes();
+    const ap = h >= 12 ? "PM":"AM"; h = h%12; if (h===0) h=12; return h+":"+pad(m)+" "+ap;
+  }
+
+  /* ---- TRACK ---- */
+  function renderTrack() {
+    const v = $("#view-track"); v.innerHTML = "";
+    const p = project();
+    const finishRow = p.rows[p.rows.length - 1];
+    const projFinish = finishRow.projected;
+    const goalDelta = projFinish - goal();
+    const lastDone = p.lastDoneIdx >= 0 ? p.rows[p.lastDoneIdx] : null;
+
+    const fc = clockFromElapsed(projFinish);
+    const badgeCls = deltaClass(goalDelta);
+    const badgeTxt = Math.abs(Math.round(goalDelta)) < 1 ? "On plan"
+      : (goalDelta > 0 ? "+" + fmtElapsed(goalDelta) + " behind" : fmtElapsed(-goalDelta) + " ahead");
+    v.appendChild(el(`<div class="card hero">
+      <div class="card-label">Projected finish · plan ${goalLabel(goal())}</div>
+      <div class="hero-row">
+        <div><div class="hero-finish">${fmtElapsed(projFinish)}</div><div class="hero-clock">${fc.time} ${fc.day}</div></div>
+        <span class="badge ${badgeCls}">${badgeTxt}</span>
+      </div>
+      <div class="hero-last">
+        ${ lastDone
+          ? `<span>Last in: <b>${esc(lastDone.station.name)}</b></span><span><b>${clockFromElapsed(lastDone.actual).time}</b> · ${fmtDelta(lastDone.delta)} min</span>`
+          : `<span>Race not started — showing the planned schedule.</span>` }
+      </div>
+    </div>`));
+
+    // Manual position stepper — advance/back through the schedule when the tracker is quiet
+    const cur = p.lastDoneIdx >= 0 ? p.rows[p.lastDoneIdx] : null;
+    const atEnd = p.lastDoneIdx >= COURSE.stations.length - 1;
+    const posCard = el(`<div class="card pos-card">
+      <div class="card-label">Runner position — tap to advance if there's no live data</div>
+      <div class="pos-row">
+        <button class="posbtn ghost" id="pos-back" ${p.lastDoneIdx < 0 ? 'disabled' : ''}>◀ Back</button>
+        <div class="pos-mid">
+          <div class="pos-where">${cur ? esc(cur.station.name) : 'Not started'}</div>
+          <div class="pos-sub">${cur
+            ? 'mile ' + cur.station.mile.toFixed(1) + ' · ' + (cur.timed ? 'in ' + clockFromElapsed(cur.actual).time : 'passed ~' + clockFromElapsed(cur.projected).time)
+            : 'at the start line'}</div>
+        </div>
+        <button class="posbtn" id="pos-fwd" ${atEnd ? 'disabled' : ''}>Reached<br>next ▶</button>
+      </div>
+    </div>`);
+    posCard.querySelector("#pos-back").onclick = () => advanceRunner(-1);
+    posCard.querySelector("#pos-fwd").onclick = () => advanceRunner(1);
+    v.appendChild(posCard);
+
+    // Next crew stop (with crew job info)
+    const nextCrew = p.rows.find(r => r.idx > p.lastDoneIdx && r.station.crew && r.station.mile > 0 && r.station.mile < COURSE.distance);
+    if (nextCrew) {
+      const ac = clockFromElapsed(nextCrew.projected);
+      const card = el(`<div class="card crew-card">
+        <div class="card-label">Next crew stop</div>
+        <div class="crew-top">
+          <svg class="pin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          <div>
+            <div class="crew-name">${esc(nextCrew.station.name)}</div>
+            <div class="crew-mile">Mile ${nextCrew.station.mile.toFixed(1)} · ${(nextCrew.station.mile - (lastDone?lastDone.station.mile:0)).toFixed(1)} mi to go</div>
+          </div>
+        </div>
+        <div class="crew-grid">
+          <div class="stat"><div class="k">Projected arrival</div><div class="v">${ac.time} <small>${ac.day}</small></div></div>
+          <div class="stat"><div class="k">Elapsed at stop</div><div class="v">${fmtElapsed(nextCrew.projected)}</div></div>
+        </div>
+        ${nextCrew.station.haveReady ? `<div class="haveready"><div class="k">Have ready</div><div class="v">${esc(nextCrew.station.haveReady)}</div></div>` : ''}
+        ${nextCrew.station.stopGoal ? `<div class="stopgoal"><b>Goal:</b> ${esc(nextCrew.station.stopGoal)}</div>` : ''}
+      </div>`);
+      v.appendChild(card);
+    }
+
+    // Mobile-smart upcoming list: next 3 + next crew + finish + last done for context
+    const showIdx = new Set();
+    const futures = p.rows.filter(r => r.idx > p.lastDoneIdx);
+    futures.slice(0, 3).forEach(r => showIdx.add(r.idx));
+    const nc = futures.find(r => r.station.crew && r.station.mile > 0 && r.station.mile < COURSE.distance);
+    if (nc) showIdx.add(nc.idx);
+    showIdx.add(p.rows.length - 1);
+    if (p.lastDoneIdx >= 0) showIdx.add(p.lastDoneIdx);
+
+    const listCard = el(`<div class="card"><div class="card-label">Schedule — tap a stop to log a split</div><div class="rows" id="trackRows"></div></div>`);
+    const rowsWrap = listCard.querySelector("#trackRows");
+    let prevIdx = -99;
+    [...showIdx].sort((a,b)=>a-b).forEach(idx => {
+      if (idx - prevIdx > 1 && prevIdx >= 0) rowsWrap.appendChild(el(`<div style="text-align:center;color:var(--text-muted);font-size:0.62rem;font-weight:700;padding:0.2rem 0;letter-spacing:0.08em;">⋯ ${idx - prevIdx - 1} more ⋯</div>`));
+      rowsWrap.appendChild(stationRow(p.rows[idx])); prevIdx = idx;
+    });
+    v.appendChild(listCard);
+  }
+
+  function stationRow(r) {
+    const s = r.station;
+    const pc = clockFromElapsed(r.projected);
+    const cls = "srow" + (r.isDone ? " done" : "") + (r.isCurrent ? " next" : "");
+    const row = el(`<div class="${cls}">
+      <div class="mi">mi ${s.mile.toFixed(1)}</div>
+      <div class="nm">${esc(s.name)}${s.crew ? '<span class="crewtag">CREW</span>' : ''}${r.isDone ? '<span class="donetag">'+(r.timed?'✓ IN':'✓ passed')+'</span>' : ''}</div>
+      <div class="proj">${pc.time}<div class="day">${fmtElapsed(r.projected)}${pc.day?(' · '+pc.day):''}</div></div>
+      <div class="delta ${deltaClass(r.delta)}">${r.isDone||r.adjust?fmtDelta(r.delta):''}</div>
+    </div>`);
+    row.addEventListener("click", () => { expanded = (expanded === s.name ? null : s.name); render(); openTab(activeTab); });
+    const wrap = document.createElement("div");
+    wrap.appendChild(row);
+    if (expanded === s.name) wrap.appendChild(stationEditor(r));
+    return wrap;
+  }
+
+  function stationEditor(r) {
+    const s = r.station; const ss = stStation(s.name);
+    const st = (flash && flash.name === s.name) ? flash : null;
+    const defaultMsg = "Logging an actual arrival shifts every later projection. "
+      + (writeEndpoint() ? "Saving syncs to the sheet automatically." : "Add an Apps Script URL on the Data tab to write back to the sheet.");
+    const reachedNow = ss.reached || ss.actual != null;
+    const ed = el(`<div class="editor">
+      <div class="info">Plan <b>${s.etaText || fmtElapsed(r.planned)}</b>${s.haveReady?` · Have ready: ${esc(s.haveReady)}`:''}${s.stopGoal?`<br>${esc(s.stopGoal)}`:''}</div>
+      <div class="editor-grid">
+        <div class="field"><label>Actual arrival (clock)</label><input type="time" id="ed-actual" value="${ss.actual!=null?clock24FromElapsed(ss.actual):''}"></div>
+        <div class="field"><label>Adjust ± min</label>
+          <div class="stepper"><button id="ed-minus">−</button><input id="ed-adjust" inputmode="numeric" value="${ss.adjust||0}"><button id="ed-plus">+</button></div>
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="btn" id="ed-save">Save split</button>
+        <button class="btn ghost" id="ed-reached">${reachedNow ? 'Undo reached' : 'Mark reached (no time)'}</button>
+        <button class="btn ghost" id="ed-clear">Clear</button>
+      </div>
+      <div class="status-line ${st?st.kind:'muted'}" id="ed-status">${st ? esc(st.msg) : defaultMsg}</div>
+    </div>`);
+    const adj = ed.querySelector("#ed-adjust");
+    ed.querySelector("#ed-minus").onclick = () => { adj.value = (parseInt(adj.value||0,10) - 1); };
+    ed.querySelector("#ed-plus").onclick  = () => { adj.value = (parseInt(adj.value||0,10) + 1); };
+    ed.querySelector("#ed-save").onclick = () => {
+      const t = ed.querySelector("#ed-actual").value;
+      ss.adjust = parseInt(adj.value||0,10) || 0;
+      ss.actual = t ? elapsedFromClock(t, r.planned) : null;
+      if (ss.actual != null) ss.reached = true;
+      save();
+      // Try to push the adjustment to the Google Sheet right away.
+      flash = { name: s.name, msg: writeEndpoint() ? "Saved — syncing to sheet…" : "Saved on this device. Connect a write endpoint on the Data tab to sync to the sheet.", kind: "muted" };
+      expanded = s.name; render(); openTab(activeTab);
+      if (writeEndpoint()) pushStationToSheet(s.name, document.querySelector("#view-" + activeTab + " #ed-status"));
+    };
+    ed.querySelector("#ed-reached").onclick = () => {
+      if (reachedNow) { ss.reached = false; ss.actual = null; }
+      else { ss.reached = true; }
+      save(); expanded = null; flash = null; render(); openTab(activeTab);
+    };
+    ed.querySelector("#ed-clear").onclick = () => { ss.actual = null; ss.adjust = 0; ss.reached = false; save(); expanded = null; flash = null; render(); openTab(activeTab); };
+    return ed;
+  }
+
+  /* ---- PACE ---- */
+  function renderPace() {
+    const v = $("#view-pace"); v.innerHTML = "";
+    const g = paceGoal();
+    const presets = [
+      { label:"Plan " + goalLabel(PLAN_FINISH), min: PLAN_FINISH, note:"your sheet plan" },
+      { label:"Sub-24 · Silver", min:1440, note:"Silver buckle" },
+      { label:"Sub-30 · Finisher", min:1800, note:"Finisher buckle" },
+    ];
+    const chips = el(`<div class="chips"></div>`);
+    presets.forEach(pr => {
+      const c = el(`<button class="chip ${g===pr.min?'active':''}">${pr.label}</button>`);
+      c.onclick = () => { state.paceGoalMin = (pr.min===PLAN_FINISH?null:pr.min); save(); render(); openTab('pace'); };
+      chips.appendChild(c);
+    });
+    const customActive = !presets.some(pr => pr.min === g);
+    const custom = el(`<button class="chip ${customActive?'active':''}">Custom…</button>`);
+    custom.onclick = () => { const ans = prompt("Goal finish time (H:MM)", goalLabel(g)); if (ans) { const m = parseHM(ans); if (m) { state.paceGoalMin = m; save(); render(); openTab('pace'); } } };
+    chips.appendChild(custom);
+    v.appendChild(chips);
+
+    const note = presets.find(pr => pr.min === g);
+    v.appendChild(el(`<div class="buckle-note">Targets to finish in <b>${goalLabel(g)}</b>${note?` — ${note.note}`:''}. Pacing keeps the shape of your sheet plan, scaled to the goal. Western States awards a <b>silver buckle</b> under 24:00 and a <b>finisher buckle</b> under 30:00.</div>`));
+
+    const p = project();
+    const lastDone = p.lastDoneIdx >= 0 ? p.rows[p.lastDoneIdx] : null;
+    const fh = el(`<div class="card"><div class="from-here">
+        <input type="checkbox" id="fhToggle" ${state.paceFromHere?'checked':''} ${lastDone?'':'disabled'}>
+        <label for="fhToggle">Pace needed <b>from here</b> ${lastDone?`(last: ${esc(lastDone.station.name)}, ${fmtElapsed(lastDone.actual)})`:'(log a split first)'}</label>
+      </div><div id="paceTableWrap"></div></div>`);
+    fh.querySelector("#fhToggle").onchange = (e) => { state.paceFromHere = e.target.checked; save(); render(); openTab('pace'); };
+    v.appendChild(fh);
+
+    const fromHere = state.paceFromHere && lastDone;
+    const planned = plannedSplits();
+    let splits = [], paces = [];
+    if (fromHere) {
+      const remGoal = g - lastDone.actual;
+      const planRem = PLAN_FINISH - planned[p.lastDoneIdx];
+      const factor = planRem > 0 ? remGoal / planRem : 1;
+      COURSE.stations.forEach((s,i) => {
+        if (i < p.lastDoneIdx) { splits[i] = state.stations[s.name]?.actual ?? null; paces[i] = null; }
+        else if (i === p.lastDoneIdx) { splits[i] = lastDone.actual; paces[i] = null; }
+        else {
+          splits[i] = lastDone.actual + (planned[i] - planned[p.lastDoneIdx]) * factor;
+          const prevSplit = splits[i-1] ?? lastDone.actual;
+          const seg = s.mile - COURSE.stations[i-1].mile;
+          paces[i] = seg ? (splits[i] - prevSplit) / seg : null;
+        }
+      });
+    } else {
+      const factor = PLAN_FINISH > 0 ? g / PLAN_FINISH : 1;
+      COURSE.stations.forEach((s,i) => {
+        splits[i] = planned[i] * factor;
+        const seg = i ? s.mile - COURSE.stations[i-1].mile : 0;
+        paces[i] = seg ? (splits[i] - splits[i-1]) / seg : null;
+      });
+    }
+
+    const tbl = el(`<table class="splits"><thead><tr><th>Aid station</th><th>Mi</th><th>Pace</th><th>Clock</th><th>Elapsed</th></tr></thead><tbody></tbody></table>`);
+    const tb = tbl.querySelector("tbody");
+    COURSE.stations.forEach((s,i) => {
+      if (splits[i] == null) return;
+      const cc = clockFromElapsed(splits[i]);
+      tb.appendChild(el(`<tr class="${s.crew?'crewrow':''}">
+        <td class="stname">${esc(s.name)}${s.crew?' <span style="color:var(--orange);font-weight:800;font-size:0.7rem;">●</span>':''}</td>
+        <td>${s.mile.toFixed(1)}</td>
+        <td class="pace">${paces[i]?fmtPace(paces[i])+'<small style="color:var(--text-muted);font-weight:600">/mi</small>':'—'}</td>
+        <td>${cc.time}<br><span style="font-size:0.66rem;color:var(--text-muted)">${cc.day}</span></td>
+        <td>${fmtElapsed(splits[i])}</td></tr>`));
+    });
+    fh.querySelector("#paceTableWrap").appendChild(tbl);
+    v.appendChild(el(`<div class="buckle-note">● = crew-access stop. Average pace for ${goalLabel(g)} is ${fmtPace(g/COURSE.distance)}/mi over ${COURSE.distance.toFixed(1)} mi.</div>`));
+  }
+
+  /* ---- SPLITS ---- */
+  function renderSplits() {
+    const v = $("#view-splits"); v.innerHTML = "";
+    v.appendChild(el(`<div class="sectiontitle">Full schedule — every stop from your sheet</div>`));
+    const p = project();
+    const card = el(`<div class="card"><div class="rows" id="allRows"></div></div>`);
+    const wrap = card.querySelector("#allRows");
+    p.rows.forEach(r => wrap.appendChild(stationRow(r)));
+    v.appendChild(card);
+  }
+
+  /* ---- DATA ---- */
+  function renderData() {
+    const v = $("#view-data"); v.innerHTML = "";
+
+    const sheet = el(`<div class="card">
+      <div class="card-label">Data store</div>
+      <div class="sheet-chip">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <div><div class="nm">${esc(SHEET.tab)}</div><div class="sub">${state.lastSync?'Synced '+clockFromAbs(state.lastSync):'Not synced yet'}</div></div>
+        <a href="${SHEET_EDIT_URL}" target="_blank" rel="noopener">Open sheet ↗</a>
+      </div>
+      <button class="btn block" id="sh-pull">Refresh from sheet ⤓</button>
+      <div class="status-line muted" id="sh-status">Reads the live <b>${esc(SHEET.tab)}</b> tab (ETAs &amp; adjustments). Connected and hardcoded.</div>
+    </div>`);
+    sheet.querySelector("#sh-pull").onclick = () => pullFromSheet(sheet.querySelector("#sh-status"), true);
+    v.appendChild(sheet);
+
+    const hardcoded = !!SHEET_WRITE_URL;
+    const connected = !!writeEndpoint();
+    const write = el(`<div class="card">
+      <div class="card-label">Write back — Adjust +/- min</div>
+      <div class="sheet-chip">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${connected?'var(--green)':'var(--text-muted)'}" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        <div><div class="nm">${connected ? 'Auto-sync on' : 'Not connected'}</div>
+          <div class="sub">${hardcoded ? 'Hardcoded endpoint — every crew device writes to the sheet.' : (state.writeUrl ? 'Using a per-device endpoint.' : 'Save split writes only on this device until connected.')}</div></div>
+      </div>
+      <div class="help" style="margin-bottom:0.8rem">${hardcoded
+        ? 'The write endpoint is hardcoded to this sheet — <b>Save split</b> updates <code>Adjust +/- min</code> for all crew automatically.'
+        : 'To turn on automatic writes: open <a href="'+SHEET_EDIT_URL+'" target="_blank" rel="noopener">the sheet</a> → <b>Extensions → Apps Script</b>, paste the script from the tool\'s CLAUDE.md, then <b>Deploy → New deployment → Web app</b> (Execute as: Me, Access: Anyone). Send Ian the <code>/exec</code> URL to hardcode it, or paste it below for just this device.'}</div>
+      <div class="setting"><label class="lab">Override endpoint (optional)</label><input type="text" id="wr-url" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(state.writeUrl)}"></div>
+      <div class="row2">
+        <button class="btn ghost" id="wr-save">Save</button>
+        <button class="btn" id="wr-push" ${connected?'':'disabled'}>Push all now ⤒</button>
+      </div>
+      <div class="status-line ${connected?'ok':'muted'}" id="wr-status">${connected?'Connected — saving a split syncs automatically.':'No write endpoint yet — pushing is disabled.'}</div>
+    </div>`);
+    write.querySelector("#wr-save").onclick = () => { state.writeUrl = write.querySelector("#wr-url").value.trim(); save(); render(); openTab('data'); };
+    write.querySelector("#wr-push").onclick = () => pushAllToSheet(write.querySelector("#wr-status"));
+    v.appendChild(write);
+
+    const setup = el(`<div class="card">
+      <div class="card-label">Race setup</div>
+      <div class="setting"><label class="lab">Runner name</label><input type="text" id="set-runner" placeholder="e.g. Ian" value="${esc(state.runnerName)}"></div>
+      <div class="setting row2">
+        <div><label class="lab">Start date</label><input type="date" id="set-date" value="${state.startDate}"></div>
+        <div><label class="lab">Start time</label><input type="time" id="set-time" value="${state.startTime}"></div>
+      </div>
+      <div class="setting"><label class="lab">Compare against (goal)</label><input type="text" id="set-goal" value="${goalLabel(goal())}" placeholder="H:MM"></div>
+      <button class="btn block" id="set-save">Save setup</button>
+      <div class="status-line muted">Plan finish from the sheet is <b>${goalLabel(PLAN_FINISH)}</b>. Leave the goal there to track the plan, or set sub-24 / sub-30 to compare.</div>
+    </div>`);
+    setup.querySelector("#set-save").onclick = () => {
+      state.runnerName = setup.querySelector("#set-runner").value.trim();
+      state.startDate = setup.querySelector("#set-date").value;
+      state.startTime = setup.querySelector("#set-time").value || "05:00";
+      state.startTimeUserSet = true;
+      const gg = parseHM(setup.querySelector("#set-goal").value);
+      state.goalMin = (gg && Math.abs(gg - PLAN_FINISH) > 0.5) ? gg : null;
+      save(); render(); openTab('data');
+    };
+    v.appendChild(setup);
+
+    const danger = el(`<div class="card"><div class="card-label">Reset</div>
+      <button class="btn block ghost" id="reset-all">Clear all logged splits &amp; adjustments</button></div>`);
+    danger.querySelector("#reset-all").onclick = () => { if (confirm("Clear all logged splits and adjustments?")) { state.stations = {}; save(); render(); openTab('data'); } };
+    v.appendChild(danger);
+  }
+  function setStatus(node, msg, kind) { if(!node) return; node.innerHTML = msg; node.className = "status-line " + (kind||'muted'); }
+
+  /* ── Google Sheet I/O ──────────────────────────────────────────────────── */
+  function parseCSV(text) {
+    const rows = []; let row = [], field = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"' && text[i+1] === '"') { field += '"'; i++; } else if (c === '"') q = false; else field += c; }
+      else { if (c === '"') q = true; else if (c === ',') { row.push(field); field = ""; } else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ""; } else if (c === '\r') {} else field += c; }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+  // Parse CSV rows -> {courseRows, adjustByName}
+  function ingestSheet(rows) {
+    let hIdx = 0;
+    for (let i = 0; i < Math.min(rows.length, 5); i++) { if (rows[i].join(" ").toLowerCase().match(/crew stop|aid|station|mile|adjust/)) { hIdx = i; break; } }
+    const H = rows[hIdx].map(h => h.toLowerCase().trim());
+    const find = (...keys) => H.findIndex(h => keys.some(k => h.includes(k)));
+    const cMile = find("mile","dist"), cName = find("crew stop","aid","station","location","name"),
+          cEta = find("eta","arriv"), cLeave = find("leave"), cAdjust = find("adjust","+/-"),
+          cGoal = find("stop goal","goal"), cReady = find("have ready","ready"), cNotes = find("note");
+    const courseRows = [], adjustByName = {};
+    for (let i = hIdx + 1; i < rows.length; i++) {
+      const r = rows[i]; if (!r || cName < 0 || !r[cName] || !r[cName].trim()) continue;
+      const name = r[cName].trim();
+      courseRows.push({
+        mile: cMile>=0 ? parseFloat(r[cMile])||0 : 0, name,
+        eta: cEta>=0 ? (r[cEta]||"").trim() : "", leaveBy: cLeave>=0 ? (r[cLeave]||"").trim() : "",
+        stopGoal: cGoal>=0 ? (r[cGoal]||"").trim() : "", haveReady: cReady>=0 ? (r[cReady]||"").trim() : "",
+        notes: cNotes>=0 ? (r[cNotes]||"").trim() : "",
+      });
+      if (cAdjust>=0 && r[cAdjust] !== undefined && r[cAdjust] !== "") { const a = parseFloat(r[cAdjust]); if (!isNaN(a)) adjustByName[name] = a; }
+    }
+    return { courseRows, adjustByName };
+  }
+  async function pullFromSheet(status, loud) {
+    if (loud) setStatus(status, "Refreshing…", "muted");
+    try {
+      const res = await fetch(SHEET_CSV_URL, { cache:"no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const { courseRows, adjustByName } = ingestSheet(parseCSV(await res.text()));
+      if (courseRows.length) {
+        buildCourse(courseRows);
+        // merge incremental adjustments from the sheet (don't clobber a logged actual)
+        Object.entries(adjustByName).forEach(([nm, a]) => { const ss = stStation(nm); if (ss.actual == null) ss.adjust = a; });
+      }
+      state.lastSync = Date.now(); save(); render(); openTab(activeTab);
+      if (loud) setStatus(status, `Synced ${courseRows.length} stops at ${clockFromAbs(state.lastSync)}.`, "ok");
+    } catch (e) {
+      if (loud) setStatus(status, "Couldn't reach the sheet — still using the saved plan. (" + e.message + ")", "err");
+    }
+  }
+  async function pushAllToSheet(status) {
+    const url = writeEndpoint();
+    if (!url) { setStatus(status, "No write endpoint connected yet.", "err"); return; }
+    const p = project();
+    const payload = p.rows.filter(r => r.adjust || r.actual != null).map(r => ({
+      station: r.station.name, mile: r.station.mile, adjust: r.incAdjust, total: Math.round(r.delta),
+      actual: r.actual != null ? clockFromElapsed(r.actual).time : "",
+    }));
+    if (!payload.length) { setStatus(status, "Nothing to push yet — log a split first.", "muted"); return; }
+    setStatus(status, "Pushing " + payload.length + " rows…", "muted");
+    try {
+      await fetch(url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"text/plain" }, body: JSON.stringify({ updates: payload }) });
+      setStatus(status, "Pushed " + payload.length + " adjustments. Refresh the sheet to confirm.", "ok");
+    } catch (e) { setStatus(status, "Push failed: " + e.message, "err"); }
+  }
+  async function pushStationToSheet(name, status) {
+    const url = writeEndpoint();
+    if (!url) { setStatus(status, "No write endpoint connected yet (Data tab).", "err"); return; }
+    const r = project().rows.find(x => x.station.name === name);
+    setStatus(status, "Pushing…", "muted");
+    try {
+      await fetch(url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"text/plain" },
+        body: JSON.stringify({ updates: [{ station:name, mile:r.station.mile, adjust:r.incAdjust, total:Math.round(r.delta), actual:r.actual!=null?clockFromElapsed(r.actual).time:"" }] }) });
+      setStatus(status, "Pushed " + name + " (adjust " + fmtDelta(r.incAdjust) + ", total " + fmtDelta(r.delta) + ").", "ok");
+    } catch (e) { setStatus(status, "Push failed: " + e.message, "err"); }
+  }
+
+  /* ── Tabs ──────────────────────────────────────────────────────────────── */
+  function openTab(tab) {
+    activeTab = tab;
+    ["track","pace","splits","data"].forEach(t => $("#view-" + t).classList.toggle("hidden", t !== tab));
+    [...$("#tabbar").children].forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+    window.scrollTo({ top: 0 });
+  }
+  $("#tabbar").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; expanded = null; openTab(b.dataset.tab); });
+
+  /* ── Init ──────────────────────────────────────────────────────────────── */
+  buildCourse(SHEET_SNAPSHOT);   // instant render from the embedded snapshot
+  render();
+  openTab("track");
+  pullFromSheet(null, false);    // then refresh from the live sheet
+  </script>
+</body>
+</html>
