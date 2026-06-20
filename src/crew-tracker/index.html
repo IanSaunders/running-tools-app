@@ -8,6 +8,9 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Stop iOS double-tap-to-zoom on taps (esp. the +/- steppers) */
+    button, input, select, textarea, a, [role="link"], .stepper { touch-action: manipulation; }
+
     :root {
       --orange: #e57a32;
       --orange-dark: #cf6a26;
@@ -58,8 +61,14 @@
     .topbar .sub .dot { color: var(--green); }
     .topbar .sub .dot.stale { color: var(--amber); }
     .topbar .sub .dot.off { color: var(--red); }
-    .home-link { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
+    .home-link { font-size: 0.8rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
     .home-link:hover { color: var(--text); }
+    .top-refresh { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer;
+      width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; padding: 0; }
+    .top-refresh:hover { color: var(--orange); background: rgba(229,122,50,0.08); }
+    .top-refresh svg { width: 18px; height: 18px; }
+    .top-refresh.spinning svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     main { padding: 1rem 0 2rem; }
 
@@ -240,6 +249,9 @@
         <h1 id="raceTitle">Western States 100</h1>
         <div class="sub" id="raceSub">Crew tracker</div>
       </div>
+      <button id="topRefresh" class="top-refresh" title="Refresh from sheet" aria-label="Refresh from sheet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5h-5"/></svg>
+      </button>
       <a href="../index.html" class="home-link">All tools</a>
     </div>
   </header>
@@ -738,9 +750,9 @@
         <a href="${SHEET_EDIT_URL}" target="_blank" rel="noopener">Open sheet ↗</a>
       </div>
       <button class="btn block" id="sh-pull">Refresh from sheet ⤓</button>
-      <div class="status-line muted" id="sh-status">Reads the live <b>${esc(SHEET.tab)}</b> tab (ETAs &amp; adjustments). Connected and hardcoded.</div>
+      <div class="status-line muted" id="sh-status">Pulls the live <b>${esc(SHEET.tab)}</b> tab and replaces this device's view with the sheet's current values. Connected and hardcoded.</div>
     </div>`);
-    sheet.querySelector("#sh-pull").onclick = () => pullFromSheet(sheet.querySelector("#sh-status"), true);
+    sheet.querySelector("#sh-pull").onclick = () => pullFromSheet(sheet.querySelector("#sh-status"), true, true);
     v.appendChild(sheet);
 
     const hardcoded = !!SHEET_WRITE_URL;
@@ -829,16 +841,26 @@
     }
     return { courseRows, adjustByName };
   }
-  async function pullFromSheet(status, loud) {
+  // replace=true  → sheet is authoritative: rebuild progress purely from the sheet's
+  //   Adjust +/- min column (clears local-only splits). Used by the Refresh buttons.
+  // replace=false → background merge on load: take the sheet's adjustments but keep any
+  //   local split the sheet doesn't have yet (e.g. logged offline, not pushed).
+  async function pullFromSheet(status, loud, replace) {
     if (loud) setStatus(status, "Refreshing…", "muted");
     try {
-      const res = await fetch(SHEET_CSV_URL, { cache:"no-store" });
+      const res = await fetch(SHEET_CSV_URL + "&_cb=" + Date.now(), { cache:"no-store" }); // cache-buster → fresh read
       if (!res.ok) throw new Error("HTTP " + res.status);
       const { courseRows, adjustByName } = ingestSheet(parseCSV(await res.text()));
       if (courseRows.length) {
         buildCourse(courseRows);
-        // merge incremental adjustments from the sheet (don't clobber a logged actual)
-        Object.entries(adjustByName).forEach(([nm, a]) => { const ss = stStation(nm); if (ss.actual == null) ss.adjust = a; });
+        if (replace) {
+          // A filled Adjust cell == that stop was reached; rebuild state from the sheet alone.
+          const ns = {};
+          Object.entries(adjustByName).forEach(([nm, a]) => { ns[nm] = { adjust: a, actual: null, reached: true }; });
+          state.stations = ns;
+        } else {
+          Object.entries(adjustByName).forEach(([nm, a]) => { const ss = stStation(nm); ss.adjust = a; ss.reached = true; ss.actual = null; });
+        }
       }
       state.lastSync = Date.now(); save(); render(); openTab(activeTab);
       if (loud) setStatus(status, `Synced ${courseRows.length} stops at ${clockFromAbs(state.lastSync)}.`, "ok");
@@ -881,6 +903,13 @@
     window.scrollTo({ top: 0 });
   }
   $("#tabbar").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; expanded = null; openTab(b.dataset.tab); });
+
+  // Header refresh — pull the latest from the sheet (authoritative) from any tab.
+  $("#topRefresh").addEventListener("click", async () => {
+    const btn = $("#topRefresh"); if (btn.classList.contains("spinning")) return;
+    btn.classList.add("spinning"); expanded = null;
+    try { await pullFromSheet(null, false, true); } finally { btn.classList.remove("spinning"); }
+  });
 
   /* ── Init ──────────────────────────────────────────────────────────────── */
   buildCourse(SHEET_SNAPSHOT);   // instant render from the embedded snapshot
