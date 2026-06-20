@@ -121,6 +121,37 @@
     .stopgoal { margin-top: 0.55rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; }
     .stopgoal b { color: var(--text); font-weight: 700; }
 
+    /* parking + tips */
+    .parkrow { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .maps-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--orange); color: #fff;
+      text-decoration: none; font-weight: 800; font-size: 0.82rem; padding: 0.45rem 0.75rem; border-radius: 999px; white-space: nowrap; }
+    .maps-btn:active { transform: translateY(1px); }
+    .park-note { font-size: 0.74rem; color: var(--text-muted); line-height: 1.4; flex: 1; min-width: 9rem; }
+    .park-note b { color: var(--text); }
+    .approx { color: var(--amber); font-weight: 700; }
+    .tips { margin-top: 0.7rem; background: #f4f8ff; border: 1px solid #dbe7fb; border-radius: 10px; padding: 0.6rem 0.7rem; }
+    .tips-k { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #2c61c4; }
+    .tips-v { font-size: 0.86rem; line-height: 1.5; margin-top: 0.15rem; }
+    .crewnote { font-size: 0.84rem; line-height: 1.5; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #dbe7fb; }
+    .crewnote b { color: var(--text); }
+    .field textarea { font-size: 1rem; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 9px;
+      background: var(--card); color: var(--text); font-family: inherit; width: 100%; min-height: 3.2rem; resize: vertical; }
+    .field.wide { flex: 1 1 100%; }
+
+    /* crew helper cards */
+    .crew-helper-card { border-color: #f0d6c0; }
+    .crew-helper-card.done { opacity: 0.66; }
+    .ch-top { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; }
+    .ch-top .crew-mile { margin-top: 0.15rem; }
+    .ch-log { font-size: 0.78rem; font-weight: 800; color: var(--orange); white-space: nowrap; }
+    .dlt.ahead { color: var(--green); } .dlt.behind { color: var(--red); } .dlt.even { color: var(--text-muted); }
+
+    /* units segmented toggle */
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+    .seg button { border: none; background: var(--card); color: var(--text-muted); font-family: inherit;
+      font-size: 0.85rem; font-weight: 800; padding: 0.5rem 0.9rem; cursor: pointer; }
+    .seg button.active { background: var(--orange); color: #fff; }
+
     /* ── Position stepper ── */
     .pos-row { display: flex; align-items: center; gap: 0.6rem; }
     .pos-mid { flex: 1; text-align: center; min-width: 0; }
@@ -139,7 +170,7 @@
       gap: 0.6rem; padding: 0.7rem 0.2rem; border-top: 1px solid var(--border); cursor: pointer;
     }
     .srow:first-child { border-top: none; }
-    .srow .mi { font-variant-numeric: tabular-nums; font-size: 0.72rem; color: var(--text-muted); font-weight: 700; width: 3.1rem; }
+    .srow .mi { font-variant-numeric: tabular-nums; font-size: 0.72rem; color: var(--text-muted); font-weight: 700; width: 3.9rem; }
     .srow .nm { font-weight: 700; font-size: 0.92rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
     .srow .nm .crewtag { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; color: var(--orange);
       border: 1px solid var(--orange); border-radius: 5px; padding: 0.05rem 0.25rem; }
@@ -273,8 +304,8 @@
       Pace
     </button>
     <button data-tab="splits">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-      Splits
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 6.2a3 3 0 0 1 0 5.6"/><path d="M17.5 14.3A5.5 5.5 0 0 1 20.5 19"/></svg>
+      Crew
     </button>
     <button data-tab="data">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6c0-1.7 4-3 9-3s9 1.3 9 3-4 3-9 3-9-1.3-9-3z"/><path d="M3 6v6c0 1.7 4 3 9 3s9-1.3 9-3V6"/><path d="M3 12v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
@@ -308,6 +339,35 @@
   // Stops where the crew physically has access (drives the "Next crew stop" card).
   const CREW_ACCESS = ["start", "robinson", "michigan", "foresthill", "rucky", "green gate", "highway 49", "finish"];
   const isCrew = (name) => { const n = (name||"").toLowerCase(); return CREW_ACCESS.some(k => n.includes(k)); };
+
+  // Per-crew-stop logistics: approximate parking coordinates + tips for real-time planning.
+  // Coords are best-effort and EDITABLE in-app — verify against the official WS crew guide.
+  // `key` matches the station name (lowercase substring).
+  const CREW_INFO = [
+    { key:"olympic", lat:39.1968, lng:-120.2357, park:"Olympic Valley / Palisades Tahoe base area.",
+      tips:"5:00 AM start. Cold up high — have warm throwaway layers. Sort drop bags and your plan to reach Robinson Flat (first crew access, mile 30)." },
+    { key:"robinson", lat:39.1544, lng:-120.5006, park:"No private vehicles to the aid station — ride the official crew shuttle from Foresthill. Check the shuttle schedule and leave early.",
+      tips:"First crew access (mi 30) after a long, dusty, often hot stretch — and the brutal canyons come next. Load ice, cold fluids, calories, cooling. Drop-bag stop. Keep it efficient." },
+    { key:"michigan", lat:39.0386, lng:-120.7375, park:"Michigan Bluff — follow race parking; narrow roads, arrive early.",
+      tips:"Mi 55, right after the three big canyons — runner often arrives hot and depleted. Core cooling + calories + stomach check first. Pacers NOT allowed yet (Foresthill is pickup)." },
+    { key:"foresthill", lat:39.0188, lng:-120.8172, park:"Foresthill — follow signs near Foresthill Elementary / Foresthill Rd.",
+      tips:"Mi 62 — major hub and PACER pickup. Hand off night kit (headlamp, layers, backup light), restock for the long California St descent. Last easy road access for a while." },
+    { key:"rucky", lat:38.9939, lng:-120.9430, park:"River crossing — generally NO crew vehicle access. Crew/pacers reach this side via the Green Gate shuttle; confirm in the crew guide.",
+      tips:"Mi 78, the river crossing. Expect wet feet; have a dry-sock/shoe option and a warm layer ready if you can get here." },
+    { key:"green gate", lat:38.9980, lng:-120.9290, park:"Pacer/crew access via shuttle only — no direct road. Confirm access in the crew guide.",
+      tips:"Mi 80, top of the climb out of the river. Post-river reset: dry socks, lights check, calories. Long runnable night section follows." },
+    { key:"highway 49", lat:38.9189, lng:-121.0228, park:"Hwy 49 Crossing — designated crew parking/shuttle near Auburn; arrive early, it gets busy.",
+      tips:"Mi 93, late-night/early-AM. Reassure and assess: stomach, lights, feet. Climb then runnable to No Hands Bridge. Almost home." },
+    { key:"finish", lat:38.8966, lng:-121.0769, park:"Placer High School, Auburn — finish-line parking per race info.",
+      tips:"The finish on the Placer HS track. Have warm/dry clothes, recovery food/drink, a chair. Final 1.3 mi from Robie Point: road climb, then a lap of the track." },
+  ];
+  const crewInfo = (name) => { const n = (name||"").toLowerCase(); return CREW_INFO.find(c => n.includes(c.key)) || null; };
+  function stationCoords(name) {
+    const ss = state.stations[name] || {};
+    if (ss.lat != null && ss.lng != null) return { lat: ss.lat, lng: ss.lng, custom: true };
+    const ci = crewInfo(name); return ci ? { lat: ci.lat, lng: ci.lng, custom: false } : null;
+  }
+  const mapsUrl = (lat, lng) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
   // Embedded snapshot of "Crew - app" (offline default; refreshed from live sheet on load).
   const SHEET_SNAPSHOT = [
@@ -371,10 +431,11 @@
     startDate: "2026-06-27",    // WS 2026 race day (Saturday)
     startTime: "05:00",
     startTimeUserSet: false,
-    stations: {},               // name -> { adjust:minutes, actual:elapsedMinutes|null }
+    stations: {},               // name -> { adjust, actual, reached, note, lat, lng }
     writeUrl: "",               // Apps Script web-app URL (optional)
     paceGoalMin: null,          // selected goal on Pace tab (null => plan)
     paceFromHere: false,
+    units: "imperial",          // "imperial" (mi, /mi) | "metric" (km, /km)
     lastSync: 0,
   });
   let state = load();
@@ -391,17 +452,27 @@
   function goal() { return state.goalMin || PLAN_FINISH; }
   function paceGoal() { return state.paceGoalMin || PLAN_FINISH; }
 
+  /* ── Units (imperial ⇄ metric) ─────────────────────────────────────────── */
+  const KM_PER_MI = 1.609344;
+  const isMetric = () => state.units === "metric";
+  const distU = () => isMetric() ? "km" : "mi";
+  const toDist = (mi) => isMetric() ? mi * KM_PER_MI : mi;            // miles → display unit
+  const fmtDist = (mi, dp=1) => toDist(mi).toFixed(dp) + " " + distU();
+  const paceU = () => isMetric() ? "/km" : "/mi";
+  const toPace = (minPerMi) => isMetric() ? minPerMi / KM_PER_MI : minPerMi; // min/mi → min/display-unit
+  const fmtPaceU = (minPerMi) => fmtPace(toPace(minPerMi)) + paceU();
+
   // Move the runner's current position forward/back without needing a logged time.
   // Forward marks the next stop "reached"; back clears the furthest reached/timed stop.
   function advanceRunner(dir) {
     const p = project();
     if (dir > 0) {
       const ni = p.lastDoneIdx + 1;
-      if (ni < COURSE.stations.length) { const ss = stStation(COURSE.stations[ni].name); if (ss.actual == null) ss.reached = true; }
+      if (ni < COURSE.stations.length) { const nm = COURSE.stations[ni].name; const ss = stStation(nm); if (ss.actual == null) ss.reached = true; save(); if (writeEndpoint()) pushStationToSheet(nm, null); }
     } else if (p.lastDoneIdx >= 0) {
-      const ss = stStation(COURSE.stations[p.lastDoneIdx].name); ss.reached = false; ss.actual = null;
+      const nm = COURSE.stations[p.lastDoneIdx].name; const ss = stStation(nm); ss.reached = false; ss.actual = null; ss.adjust = 0; save(); clearStationInSheet(nm);
     }
-    save(); expanded = null; flash = null; render(); openTab(activeTab);
+    expanded = null; flash = null; render(); openTab(activeTab);
   }
 
   /* ── Time helpers ──────────────────────────────────────────────────────── */
@@ -503,6 +574,25 @@
     const ap = h >= 12 ? "PM":"AM"; h = h%12; if (h===0) h=12; return h+":"+pad(m)+" "+ap;
   }
 
+  // Parking "Open in Maps" + note, and curated tips + crew's own note.
+  function parkingBlock(name) {
+    const c = stationCoords(name); if (!c) return '';
+    const ci = crewInfo(name);
+    return `<div class="parkrow">
+      <a class="maps-btn" href="${mapsUrl(c.lat, c.lng)}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        Parking in Maps
+      </a>
+      <span class="park-note">${ci?esc(ci.park)+' ':''}${c.custom?'<b>(your pin)</b>':'<span class="approx">approx — verify</span>'}</span>
+    </div>`;
+  }
+  function tipsBlock(name) {
+    const ci = crewInfo(name); const ss = state.stations[name] || {};
+    const note = ss.note ? `<div class="crewnote"><b>Your note:</b> ${esc(ss.note)}</div>` : '';
+    if (!ci && !note) return '';
+    return `<div class="tips">${ci?`<div class="tips-k">Crew tips</div><div class="tips-v">${esc(ci.tips)}</div>`:''}${note}</div>`;
+  }
+
   /* ---- TRACK ---- */
   function renderTrack() {
     const v = $("#view-track"); v.innerHTML = "";
@@ -539,7 +629,7 @@
         <div class="pos-mid">
           <div class="pos-where">${cur ? esc(cur.station.name) : 'Not started'}</div>
           <div class="pos-sub">${cur
-            ? 'mile ' + cur.station.mile.toFixed(1) + ' · ' + (cur.timed ? 'in ' + clockFromElapsed(cur.actual).time : 'passed ~' + clockFromElapsed(cur.projected).time)
+            ? fmtDist(cur.station.mile) + ' · ' + (cur.timed ? 'in ' + clockFromElapsed(cur.actual).time : 'passed ~' + clockFromElapsed(cur.projected).time)
             : 'at the start line'}</div>
         </div>
         <button class="posbtn" id="pos-fwd" ${atEnd ? 'disabled' : ''}>Reached<br>next ▶</button>
@@ -559,14 +649,16 @@
           <svg class="pin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
           <div>
             <div class="crew-name">${esc(nextCrew.station.name)}</div>
-            <div class="crew-mile">Mile ${nextCrew.station.mile.toFixed(1)} · ${(nextCrew.station.mile - (lastDone?lastDone.station.mile:0)).toFixed(1)} mi to go</div>
+            <div class="crew-mile">${fmtDist(nextCrew.station.mile)} · ${fmtDist(nextCrew.station.mile - (lastDone?lastDone.station.mile:0))} to go</div>
           </div>
         </div>
         <div class="crew-grid">
           <div class="stat"><div class="k">Projected arrival</div><div class="v">${ac.time} <small>${ac.day}</small></div></div>
           <div class="stat"><div class="k">Elapsed at stop</div><div class="v">${fmtElapsed(nextCrew.projected)}</div></div>
         </div>
+        ${parkingBlock(nextCrew.station.name)}
         ${nextCrew.station.haveReady ? `<div class="haveready"><div class="k">Have ready</div><div class="v">${esc(nextCrew.station.haveReady)}</div></div>` : ''}
+        ${tipsBlock(nextCrew.station.name)}
         ${nextCrew.station.stopGoal ? `<div class="stopgoal"><b>Goal:</b> ${esc(nextCrew.station.stopGoal)}</div>` : ''}
       </div>`);
       v.appendChild(card);
@@ -596,7 +688,7 @@
     const pc = clockFromElapsed(r.projected);
     const cls = "srow" + (r.isDone ? " done" : "") + (r.isCurrent ? " next" : "");
     const row = el(`<div class="${cls}">
-      <div class="mi">mi ${s.mile.toFixed(1)}</div>
+      <div class="mi">${fmtDist(s.mile)}</div>
       <div class="nm">${esc(s.name)}${s.crew ? '<span class="crewtag">CREW</span>' : ''}${r.isDone ? '<span class="donetag">'+(r.timed?'✓ IN':'✓ passed')+'</span>' : ''}</div>
       <div class="proj">${pc.time}<div class="day">${fmtElapsed(r.projected)}${pc.day?(' · '+pc.day):''}</div></div>
       <div class="delta ${deltaClass(r.delta)}">${r.isDone||r.adjust?fmtDelta(r.delta):''}</div>
@@ -614,18 +706,28 @@
     const defaultMsg = "Logging an actual arrival shifts every later projection. "
       + (writeEndpoint() ? "Saving syncs to the sheet automatically." : "Add an Apps Script URL on the Data tab to write back to the sheet.");
     const reachedNow = ss.reached || ss.actual != null;
+    const c = stationCoords(s.name);
     const ed = el(`<div class="editor">
       <div class="info">Plan <b>${s.etaText || fmtElapsed(r.planned)}</b>${s.haveReady?` · Have ready: ${esc(s.haveReady)}`:''}${s.stopGoal?`<br>${esc(s.stopGoal)}`:''}</div>
+      ${parkingBlock(s.name)}
+      ${tipsBlock(s.name)}
       <div class="editor-grid">
         <div class="field"><label>Actual arrival (clock)</label><input type="time" id="ed-actual" value="${ss.actual!=null?clock24FromElapsed(ss.actual):''}"></div>
         <div class="field"><label>Adjust ± min</label>
           <div class="stepper"><button id="ed-minus">−</button><input id="ed-adjust" inputmode="numeric" value="${ss.adjust||0}"><button id="ed-plus">+</button></div>
         </div>
       </div>
+      <div class="editor-grid" style="margin-top:0.6rem">
+        <div class="field wide"><label>Crew note / tip (saved on this device)</label><textarea id="ed-note" placeholder="Anything useful for here — parking, access, what to watch for…">${esc(ss.note||'')}</textarea></div>
+      </div>
+      ${s.crew ? `<div class="editor-grid" style="margin-top:0.5rem">
+        <div class="field"><label>Parking lat</label><input id="ed-lat" inputmode="decimal" placeholder="${crewInfo(s.name)?crewInfo(s.name).lat:'lat'}" value="${ss.lat!=null?ss.lat:''}"></div>
+        <div class="field"><label>Parking lng</label><input id="ed-lng" inputmode="decimal" placeholder="${crewInfo(s.name)?crewInfo(s.name).lng:'lng'}" value="${ss.lng!=null?ss.lng:''}"></div>
+      </div>` : ''}
       <div class="editor-actions">
-        <button class="btn" id="ed-save">Save split</button>
+        <button class="btn" id="ed-save">Save</button>
         <button class="btn ghost" id="ed-reached">${reachedNow ? 'Undo reached' : 'Mark reached (no time)'}</button>
-        <button class="btn ghost" id="ed-clear">Clear</button>
+        <button class="btn ghost" id="ed-clear">Clear split</button>
       </div>
       <div class="status-line ${st?st.kind:'muted'}" id="ed-status">${st ? esc(st.msg) : defaultMsg}</div>
     </div>`);
@@ -637,18 +739,32 @@
       ss.adjust = parseInt(adj.value||0,10) || 0;
       ss.actual = t ? elapsedFromClock(t, r.planned) : null;
       if (ss.actual != null) ss.reached = true;
+      const noteEl = ed.querySelector("#ed-note"); if (noteEl) ss.note = noteEl.value.trim();
+      const latEl = ed.querySelector("#ed-lat"), lngEl = ed.querySelector("#ed-lng");
+      if (latEl && lngEl) {
+        const la = parseFloat(latEl.value), ln = parseFloat(lngEl.value);
+        if (!isNaN(la) && !isNaN(ln)) { ss.lat = la; ss.lng = ln; }
+        else if (latEl.value.trim() === "" && lngEl.value.trim() === "") { delete ss.lat; delete ss.lng; }
+      }
       save();
-      // Try to push the adjustment to the Google Sheet right away.
-      flash = { name: s.name, msg: writeEndpoint() ? "Saved — syncing to sheet…" : "Saved on this device. Connect a write endpoint on the Data tab to sync to the sheet.", kind: "muted" };
-      expanded = s.name; render(); openTab(activeTab);
-      if (writeEndpoint()) pushStationToSheet(s.name, document.querySelector("#view-" + activeTab + " #ed-status"));
+      // Only sync a real split (a logged time, an adjustment, or already reached) to the
+      // sheet — editing just a note or parking pin stays on this device.
+      const isSplit = ss.actual != null || ss.adjust !== 0 || ss.reached;
+      if (isSplit && writeEndpoint()) {
+        flash = { name: s.name, msg: "Saved — syncing to sheet…", kind: "muted" };
+        expanded = s.name; render(); openTab(activeTab);
+        pushStationToSheet(s.name, document.querySelector("#view-" + activeTab + " #ed-status"));
+      } else {
+        flash = { name: s.name, msg: isSplit ? "Saved on this device." : "Saved.", kind: "muted" };
+        expanded = s.name; render(); openTab(activeTab);
+      }
     };
     ed.querySelector("#ed-reached").onclick = () => {
-      if (reachedNow) { ss.reached = false; ss.actual = null; }
-      else { ss.reached = true; }
-      save(); expanded = null; flash = null; render(); openTab(activeTab);
+      if (reachedNow) { ss.reached = false; ss.actual = null; ss.adjust = 0; save(); clearStationInSheet(s.name); }
+      else { ss.reached = true; save(); if (writeEndpoint()) pushStationToSheet(s.name, null); }
+      expanded = null; flash = null; render(); openTab(activeTab);
     };
-    ed.querySelector("#ed-clear").onclick = () => { ss.actual = null; ss.adjust = 0; ss.reached = false; save(); expanded = null; flash = null; render(); openTab(activeTab); };
+    ed.querySelector("#ed-clear").onclick = () => { ss.actual = null; ss.adjust = 0; ss.reached = false; save(); clearStationInSheet(s.name); expanded = null; flash = null; render(); openTab(activeTab); };
     return ed;
   }
 
@@ -711,27 +827,52 @@
       });
     }
 
-    const tbl = el(`<table class="splits"><thead><tr><th>Aid station</th><th>Mi</th><th>Pace</th><th>Clock</th><th>Elapsed</th></tr></thead><tbody></tbody></table>`);
+    const tbl = el(`<table class="splits"><thead><tr><th>Aid station</th><th>${distU()==='km'?'Km':'Mi'}</th><th>Pace</th><th>Clock</th><th>Elapsed</th></tr></thead><tbody></tbody></table>`);
     const tb = tbl.querySelector("tbody");
     COURSE.stations.forEach((s,i) => {
       if (splits[i] == null) return;
       const cc = clockFromElapsed(splits[i]);
       tb.appendChild(el(`<tr class="${s.crew?'crewrow':''}">
         <td class="stname">${esc(s.name)}${s.crew?' <span style="color:var(--orange);font-weight:800;font-size:0.7rem;">●</span>':''}</td>
-        <td>${s.mile.toFixed(1)}</td>
-        <td class="pace">${paces[i]?fmtPace(paces[i])+'<small style="color:var(--text-muted);font-weight:600">/mi</small>':'—'}</td>
+        <td>${toDist(s.mile).toFixed(1)}</td>
+        <td class="pace">${paces[i]?fmtPace(toPace(paces[i]))+'<small style="color:var(--text-muted);font-weight:600">'+paceU()+'</small>':'—'}</td>
         <td>${cc.time}<br><span style="font-size:0.66rem;color:var(--text-muted)">${cc.day}</span></td>
         <td>${fmtElapsed(splits[i])}</td></tr>`));
     });
     fh.querySelector("#paceTableWrap").appendChild(tbl);
-    v.appendChild(el(`<div class="buckle-note">● = crew-access stop. Average pace for ${goalLabel(g)} is ${fmtPace(g/COURSE.distance)}/mi over ${COURSE.distance.toFixed(1)} mi.</div>`));
+    v.appendChild(el(`<div class="buckle-note">● = crew-access stop. Average pace for ${goalLabel(g)} is ${fmtPaceU(g/COURSE.distance)} over ${fmtDist(COURSE.distance)}.</div>`));
   }
 
-  /* ---- SPLITS ---- */
+  /* ---- CREW HELPER ---- */
   function renderSplits() {
     const v = $("#view-splits"); v.innerHTML = "";
-    v.appendChild(el(`<div class="sectiontitle">Full schedule — every stop from your sheet</div>`));
     const p = project();
+    v.appendChild(el(`<div class="sectiontitle">Crew helper</div>`));
+    v.appendChild(el(`<div class="buckle-note" style="margin-top:-0.3rem">Your crew-access stops, in order. Tap <b>Parking in Maps</b> to navigate, read the tips, and add your own notes. Tap a stop to log the runner in.</div>`));
+
+    // Crew-access stops as rich cards
+    const crewRows = p.rows.filter(r => r.station.crew);
+    crewRows.forEach(r => {
+      const s = r.station; const ac = clockFromElapsed(r.projected);
+      const doneTag = r.isDone ? `<span class="donetag">${r.timed?'✓ IN':'✓ passed'}</span>` : '';
+      const card = el(`<div class="card crew-helper-card${r.isDone?' done':''}">
+        <div class="ch-top">
+          <div style="flex:1;min-width:0"><div class="crew-name">${esc(s.name)} ${doneTag}</div>
+            <div class="crew-mile">${fmtDist(s.mile)} · proj. <b>${ac.time}</b> ${ac.day} · ${fmtElapsed(r.projected)}${r.isDone||r.adjust?` · <span class="${deltaClass(r.delta)} dlt">${fmtDelta(r.delta)} min</span>`:''}</div>
+          </div>
+          <span class="ch-log">${expanded===s.name?'Close ▴':'Log ▾'}</span>
+        </div>
+        ${parkingBlock(s.name)}
+        ${s.haveReady ? `<div class="haveready"><div class="k">Have ready</div><div class="v">${esc(s.haveReady)}</div></div>` : ''}
+        ${tipsBlock(s.name)}
+      </div>`);
+      card.querySelector(".ch-top").addEventListener("click", () => { expanded = (expanded === s.name ? null : s.name); render(); openTab(activeTab); });
+      if (expanded === s.name) card.appendChild(stationEditor(r));
+      v.appendChild(card);
+    });
+
+    // Full schedule (all stops)
+    v.appendChild(el(`<div class="sectiontitle" style="margin-top:1.4rem">Full schedule — every stop</div>`));
     const card = el(`<div class="card"><div class="rows" id="allRows"></div></div>`);
     const wrap = card.querySelector("#allRows");
     p.rows.forEach(r => wrap.appendChild(stationRow(r)));
@@ -780,6 +921,12 @@
 
     const setup = el(`<div class="card">
       <div class="card-label">Race setup</div>
+      <div class="setting"><label class="lab">Units</label>
+        <div class="seg" id="unit-seg">
+          <button data-u="imperial" class="${isMetric()?'':'active'}">Miles</button>
+          <button data-u="metric" class="${isMetric()?'active':''}">Kilometres</button>
+        </div>
+      </div>
       <div class="setting"><label class="lab">Runner name</label><input type="text" id="set-runner" placeholder="e.g. Ian" value="${esc(state.runnerName)}"></div>
       <div class="setting row2">
         <div><label class="lab">Start date</label><input type="date" id="set-date" value="${state.startDate}"></div>
@@ -789,6 +936,7 @@
       <button class="btn block" id="set-save">Save setup</button>
       <div class="status-line muted">Plan finish from the sheet is <b>${goalLabel(PLAN_FINISH)}</b>. Leave the goal there to track the plan, or set sub-24 / sub-30 to compare.</div>
     </div>`);
+    setup.querySelectorAll("#unit-seg button").forEach(b => b.onclick = () => { state.units = b.dataset.u; save(); render(); openTab('data'); });
     setup.querySelector("#set-save").onclick = () => {
       state.runnerName = setup.querySelector("#set-runner").value.trim();
       state.startDate = setup.querySelector("#set-date").value;
@@ -854,9 +1002,13 @@
       if (courseRows.length) {
         buildCourse(courseRows);
         if (replace) {
-          // A filled Adjust cell == that stop was reached; rebuild state from the sheet alone.
+          // A filled Adjust cell == that stop was reached; rebuild progress from the sheet
+          // alone, but keep device-local notes & custom parking pins.
           const ns = {};
-          Object.entries(adjustByName).forEach(([nm, a]) => { ns[nm] = { adjust: a, actual: null, reached: true }; });
+          Object.entries(state.stations).forEach(([nm, ss]) => {
+            if (ss && (ss.note || ss.lat != null || ss.lng != null)) ns[nm] = { adjust:0, actual:null, reached:false, note:ss.note, lat:ss.lat, lng:ss.lng };
+          });
+          Object.entries(adjustByName).forEach(([nm, a]) => { ns[nm] = Object.assign(ns[nm]||{}, { adjust: a, actual: null, reached: true }); });
           state.stations = ns;
         } else {
           Object.entries(adjustByName).forEach(([nm, a]) => { const ss = stStation(nm); ss.adjust = a; ss.reached = true; ss.actual = null; });
@@ -893,6 +1045,11 @@
         body: JSON.stringify({ updates: [{ station:name, mile:r.station.mile, adjust:r.incAdjust, total:Math.round(r.delta), actual:r.actual!=null?clockFromElapsed(r.actual).time:"" }] }) });
       setStatus(status, "Pushed " + name + " (adjust " + fmtDelta(r.incAdjust) + ", total " + fmtDelta(r.delta) + ").", "ok");
     } catch (e) { setStatus(status, "Push failed: " + e.message, "err"); }
+  }
+  // Blank a stop's Adjust cell in the sheet (clears "reached" there too).
+  async function clearStationInSheet(name) {
+    const url = writeEndpoint(); if (!url) return;
+    try { await fetch(url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"text/plain" }, body: JSON.stringify({ updates: [{ station:name, adjust:"" }] }) }); } catch (e) {}
   }
 
   /* ── Tabs ──────────────────────────────────────────────────────────────── */

@@ -85,9 +85,23 @@ no separate per-row push button anymore — saving is the push.
 - **Pace**: goal chips — **Plan (sheet finish) / Sub-24 Silver / Sub-30 Finisher / Custom**.
   Targets scale the plan's segment durations to the chosen goal (keeps the runner's pacing
   shape). "Pace needed **from here**" recomputes the remaining stops from the last split.
-- **Splits**: the full schedule, every stop editable.
+- **Crew** (was "Splits"): the **Crew helper** — crew-access stops as rich cards with a
+  **Parking in Maps** deep link, curated **tips**, the sheet's *Have ready*, and an editable
+  per-stop **note**; full schedule below. Each stop's coords come from `CREW_INFO` (approx,
+  editable per stop → `state.stations[].lat/lng`; a custom pin overrides). Notes/pins are
+  device-local and are **preserved across an authoritative refresh**.
 - **Data**: the hardcoded sheet (synced status + Open/Refresh), the optional push-back
-  Apps Script URL, race setup (runner / start / comparison goal), reset.
+  Apps Script URL, **units** (mi/km), race setup (runner / start / comparison goal), reset.
+
+### Units
+`state.units` ('imperial' | 'metric'). Helpers `toDist`/`fmtDist`/`toPace`/`fmtPaceU` convert
+miles→km and min/mi→min/km across every distance and pace display.
+
+### What syncs to the sheet
+Only a genuine split syncs: a logged actual, a non-zero adjust, **Mark reached**, or the
+position stepper (these push the incremental `Adjust +/- min`; *Mark reached*/stepper push 0 so
+the filled cell marks the stop reached). **Clear** and *Undo reached* blank the cell
+(`clearStationInSheet`). Editing only a note or parking pin stays on-device — it never writes.
 
 State persists to `localStorage` (`ws-crew-state-v2`).
 
