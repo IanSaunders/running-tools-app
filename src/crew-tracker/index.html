@@ -61,6 +61,7 @@
     .topbar .sub .dot { color: var(--green); }
     .topbar .sub .dot.stale { color: var(--amber); }
     .topbar .sub .dot.off { color: var(--red); }
+    .topbar .sub .dot.demo { color: #2c61c4; }
     .home-link { font-size: 0.8rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
     .home-link:hover { color: var(--text); }
     .top-refresh { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer;
@@ -103,6 +104,10 @@
     .hero-last { margin-top: 0.9rem; padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,0.13);
       font-size: 0.85rem; color: rgba(255,255,255,0.82); display: flex; justify-content: space-between; gap: 0.5rem; }
     .hero-last b { color: #fff; font-weight: 700; }
+    .hero-extra { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.55rem; margin-top: 0.85rem; }
+    .hero-mini { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 0.55rem 0.65rem; }
+    .hero-mini .k { color: rgba(255,255,255,0.58); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .hero-mini .v { color: #fff; font-size: 0.95rem; font-weight: 850; margin-top: 0.15rem; }
 
     /* ── Next crew stop ── */
     .crew-card { border-color: var(--orange); border-width: 1.5px; }
@@ -115,6 +120,19 @@
     .stat .k { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
     .stat .v { font-size: 1.25rem; font-weight: 850; letter-spacing: -0.01em; margin-top: 0.15rem; }
     .stat .v small { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
+    .status-card { border-color: #dbe7fb; background: #f8fbff; }
+    .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }
+    .status-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 850; border-radius: 999px; padding: 0.3rem 0.55rem; margin-bottom: 0.55rem; }
+    .status-pill.ok { color: var(--green); background: var(--green-bg); }
+    .status-pill.warn { color: var(--amber); background: var(--amber-bg); }
+    .status-pill.err { color: var(--red); background: var(--red-bg); }
+    .status-pill.demo { color: #2c61c4; background: #eff6ff; }
+    .empty-card { text-align: left; }
+    .empty-card h2 { font-size: 1.25rem; letter-spacing: -0.02em; margin-bottom: 0.45rem; }
+    .empty-card p { color: var(--text-muted); line-height: 1.55; font-size: 0.9rem; }
+    .empty-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.9rem; }
+    .mode-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.8rem; }
+    .btn-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
     .haveready { margin-top: 0.75rem; background: #fff7f1; border: 1px solid #f6dcc6; border-radius: 10px; padding: 0.6rem 0.7rem; }
     .haveready .k { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--orange); }
     .haveready .v { font-size: 0.92rem; font-weight: 600; margin-top: 0.15rem; line-height: 1.45; }
@@ -128,6 +146,8 @@
     .maps-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--orange); color: #fff;
       text-decoration: none; font-weight: 800; font-size: 0.82rem; padding: 0.45rem 0.75rem; border-radius: 999px; white-space: nowrap; }
     .maps-btn:active { transform: translateY(1px); }
+    .access-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.28rem 0.55rem; font-size: 0.68rem; font-weight: 850; background: var(--green-bg); color: var(--green); }
+    .access-pill.warn { background: var(--amber-bg); color: var(--amber); }
     .park-note { font-size: 0.74rem; color: var(--text-muted); line-height: 1.4; flex: 1; min-width: 9rem; }
     .park-note b { color: var(--text); }
     .approx { color: var(--amber); font-weight: 700; }
@@ -142,6 +162,7 @@
 
     /* crew helper cards */
     .crew-helper-card { border-color: #f0d6c0; }
+    .crew-helper-card.next { border-color: var(--orange); border-width: 1.5px; }
     .crew-helper-card.done { opacity: 0.66; }
     .ch-top { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; }
     .ch-top .crew-mile { margin-top: 0.15rem; }
@@ -207,11 +228,15 @@
       border: none; border-radius: 9px; padding: 0.55rem 0.9rem; font-size: 0.85rem; font-weight: 800;
       cursor: pointer; font-family: inherit; background: var(--orange); color: #fff;
     }
+    .btn.big { min-height: 2.85rem; padding: 0.75rem 1rem; font-size: 0.92rem; }
     .btn.ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
     .btn.block { width: 100%; padding: 0.8rem; font-size: 0.95rem; margin-top: 0.7rem; }
     .btn:active { transform: translateY(1px); }
     .btn[disabled] { opacity: 0.5; pointer-events: none; }
     .editor-actions { display: flex; gap: 0.5rem; margin-top: 0.8rem; flex-wrap: wrap; }
+    .editor-actions .btn { flex: 1 1 auto; }
+    .quick-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center; }
+    .quick-actions .btn { padding: 0.5rem 0.7rem; }
 
     /* ── Pace targets ── */
     .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
@@ -240,6 +265,7 @@
     .status-line.ok { color: var(--green); }
     .status-line.err { color: var(--red); }
     .status-line.muted { color: var(--text-muted); }
+    .status-line.warn { color: var(--amber); }
 
     .setting { margin-bottom: 1rem; }
     .setting label.lab { display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.35rem; }
@@ -329,6 +355,9 @@
     gid:  "354419833",
     tab:  "Crew - app",
   };
+  const URL_PARAMS = new URLSearchParams(window.location.search);
+  const DEMO_MODE = URL_PARAMS.get("demo") === "1";
+  const STALE_AFTER_MS = 15 * 60 * 1000;
   const SHEET_EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET.id}/edit?gid=${SHEET.gid}`;
   const SHEET_CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET.id}/gviz/tq?tqx=out:csv&gid=${SHEET.gid}`;
   // Hardcoded write endpoint: the Apps Script web-app /exec URL bound to this sheet.
@@ -336,7 +365,7 @@
   // its /exec URL here. Once set, every crew device pushes Adjust +/- min automatically —
   // nobody has to enter anything. A per-device URL on the Data tab overrides this.
   const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbxmOGapx1mlqfbX-Qx3MGv1J5rhwgu_h-j9_ce1JIl4wrdokc_lJgw_1vWulQAlGbEaFA/exec";
-  const writeEndpoint = () => (state.writeUrl && state.writeUrl.trim()) || SHEET_WRITE_URL;
+  const writeEndpoint = () => DEMO_MODE ? "" : ((state.writeUrl && state.writeUrl.trim()) || SHEET_WRITE_URL);
 
   // Stops where the crew physically has access (drives the "Next crew stop" card).
   const CREW_ACCESS = ["start", "robinson", "michigan", "foresthill", "rucky", "green gate", "highway 49", "finish"];
@@ -405,6 +434,17 @@
   let PLAN_FINISH = 0;
 
   function buildCourse(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      COURSE = { name:"Western States 100", distance:0, stations:[] };
+      PLAN_FINISH = 0;
+      return false;
+    }
+    rows = rows.filter(r => r && r.name && !isNaN(parseFloat(r.mile)));
+    if (!rows.length) {
+      COURSE = { name:"Western States 100", distance:0, stations:[] };
+      PLAN_FINISH = 0;
+      return false;
+    }
     const startDT = parseDayTime(rows[0].eta) || { wd:6, tod:300 };
     const stations = rows.map(r => {
       const dt = parseDayTime(r.eta);
@@ -423,10 +463,11 @@
     PLAN_FINISH = stations[stations.length - 1].plannedElapsed;
     // start time-of-day from the plan, unless the user overrode it
     if (!state.startTimeUserSet) state.startTime = pad(Math.floor(startDT.tod/60)) + ":" + pad(startDT.tod%60);
+    return true;
   }
 
   /* ── State ─────────────────────────────────────────────────────────────── */
-  const STORE_KEY = "ws-crew-state-v2";
+  const STORE_KEY = DEMO_MODE ? "ws-crew-demo-state-v1" : "ws-crew-state-v2";
   const defaultState = () => ({
     runnerName: "",
     goalMin: null,              // null => use the sheet plan finish
@@ -439,8 +480,15 @@
     paceFromHere: false,
     units: "imperial",          // "imperial" (mi, /mi) | "metric" (km, /km)
     lastSync: 0,
+    demoSeeded: false,
   });
   let state = load();
+  let dataState = {
+    kind: DEMO_MODE ? "demo" : "snapshot",
+    message: DEMO_MODE ? "Demo mode uses local sample progress. Sheet writes are disabled." : "Using embedded plan until the sheet responds.",
+    source: DEMO_MODE ? "Demo data" : "Embedded plan",
+    lastAttempt: 0,
+  };
   let activeTab = "track";
   let expanded = null;
   let flash = null;   // {name, msg, kind} — transient status shown in a station editor after Save
@@ -453,6 +501,24 @@
   function stStation(name) { if (!state.stations[name]) state.stations[name] = { adjust:0, actual:null }; return state.stations[name]; }
   function goal() { return state.goalMin || PLAN_FINISH; }
   function paceGoal() { return state.paceGoalMin || PLAN_FINISH; }
+  function hasCourse() { return COURSE.stations.length > 0; }
+  function lastTimedRow(p) {
+    for (let i = p.rows.length - 1; i >= 0; i--) if (p.rows[i].timed) return p.rows[i];
+    return null;
+  }
+  function applyDemoSeed() {
+    if (!DEMO_MODE || state.demoSeeded) return;
+    state.runnerName = state.runnerName || "Demo Runner";
+    state.goalMin = state.goalMin || PLAN_FINISH;
+    state.stations = Object.assign({}, state.stations, {
+      "Start - Olympic Valley": Object.assign(stStation("Start - Olympic Valley"), { actual: 0, reached: true, adjust: 0 }),
+      "Red Star Ridge": Object.assign(stStation("Red Star Ridge"), { actual: 193, reached: true, adjust: 0 }),
+      "Robinson Flat": Object.assign(stStation("Robinson Flat"), { actual: 355, reached: true, adjust: 0 }),
+      "Dusty Corners": Object.assign(stStation("Dusty Corners"), { reached: true, actual: null, adjust: 0 }),
+    });
+    state.demoSeeded = true;
+    save();
+  }
 
   /* ── Units (imperial ⇄ metric) ─────────────────────────────────────────── */
   const KM_PER_MI = 1.609344;
@@ -467,6 +533,7 @@
   // Move the runner's current position forward/back without needing a logged time.
   // Forward marks the next stop "reached"; back clears the furthest reached/timed stop.
   function advanceRunner(dir) {
+    if (!hasCourse()) return;
     const p = project();
     if (dir > 0) {
       const ni = p.lastDoneIdx + 1;
@@ -532,6 +599,7 @@
 
   // Full projection: actuals override and carry forward; per-stop adjust carries forward.
   function project() {
+    if (!hasCourse()) return { rows:[], lastDoneIdx:-1, nextIdx:-1 };
     const planned = plannedSplits();
     const rows = []; let runningOffset = 0; let lastDoneIdx = -1;
     COURSE.stations.forEach((s, i) => {
@@ -557,18 +625,55 @@
   function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
   function deltaClass(min) { if (min == null || isNaN(min)) return "even"; const r = Math.round(min); return r > 0 ? "behind" : r < 0 ? "ahead" : "even"; }
-  function goalLabel(min) { const h = Math.floor(min/60), m = min%60; return m === 0 ? h + ":00" : h + ":" + pad(m); }
+  function goalLabel(min) { if (min == null || !isFinite(min) || min <= 0) return "—"; const h = Math.floor(min/60), m = Math.round(min%60); return m === 0 ? h + ":00" : h + ":" + pad(m); }
   function parseHM(s) {
     const m = String(s).trim().match(/^(\d{1,2}):(\d{2})$/);
     if (!m) { const n = parseFloat(s); return isNaN(n)?null:Math.round(n*60); }
     return (+m[1])*60 + (+m[2]);
   }
+  function dataSummary() {
+    if (DEMO_MODE) return { label:"Demo mode", cls:"demo", dot:"demo", detail:"Writes disabled", source:"Demo data" };
+    if (dataState.kind === "loading") return { label:"Loading sheet", cls:"warn", dot:"stale", detail:"Refreshing live plan", source:"Sheet" };
+    if (dataState.kind === "empty") return { label:"Empty sheet", cls:"warn", dot:"stale", detail:"Using embedded plan", source:"Embedded plan" };
+    if (dataState.kind === "error") return { label:"Sheet error", cls:"err", dot:"off", detail:"Using saved plan", source:dataState.source || "Saved plan" };
+    if (state.lastSync && Date.now() - state.lastSync > STALE_AFTER_MS) return { label:"Stale", cls:"warn", dot:"stale", detail:"Last sync " + clockFromAbs(state.lastSync), source:"Sheet" };
+    if (state.lastSync) return { label:"Synced", cls:"ok", dot:"", detail:clockFromAbs(state.lastSync), source:"Sheet" };
+    return { label:"Embedded plan", cls:"warn", dot:"stale", detail:"Waiting for sheet", source:"Embedded plan" };
+  }
+  function statusPill() {
+    const ds = dataSummary();
+    return `<span class="status-pill ${ds.cls}">${esc(ds.label)}</span>`;
+  }
+  function emptyCourseCard(message) {
+    return el(`<div class="card empty-card">
+      <h2>No course data loaded</h2>
+      <p>${esc(message || "The app could not build a station list. Refresh from the Data tab or check the embedded snapshot and sheet columns.")}</p>
+      <div class="empty-actions">
+        <button class="btn" id="empty-refresh">Refresh from sheet</button>
+        <button class="btn ghost" id="empty-data">Open Data tab</button>
+      </div>
+    </div>`);
+  }
+  function attachEmptyActions(card) {
+    const refresh = card.querySelector("#empty-refresh");
+    const data = card.querySelector("#empty-data");
+    if (refresh) refresh.onclick = () => pullFromSheet(null, true, true);
+    if (data) data.onclick = () => openTab("data");
+  }
+  function nowElapsedNear(nearElapsed) {
+    return elapsedFromClock(pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()), nearElapsed);
+  }
+  function fmtUntil(min) {
+    if (min == null || !isFinite(min)) return "—";
+    const diff = Math.round((startDate().getTime() + min * 60000 - Date.now()) / 60000);
+    if (Math.abs(diff) < 1) return "now";
+    return diff > 0 ? "in " + fmtElapsed(diff) : fmtElapsed(-diff) + " ago";
+  }
 
   function render() {
     renderTrack(); renderPace(); renderSplits(); renderData();
-    const sync = state.lastSync
-      ? `<span class="dot">●</span> Synced ${clockFromAbs(state.lastSync)}`
-      : `<span class="dot off">●</span> Using saved plan`;
+    const ds = dataSummary();
+    const sync = `<span class="dot ${ds.dot}">●</span> ${esc(ds.label)}${ds.detail ? " · " + esc(ds.detail) : ""}`;
     $("#raceSub").innerHTML = (state.runnerName ? esc(state.runnerName) + " · " : "") + sync;
   }
   function clockFromAbs(ts) {
@@ -580,11 +685,14 @@
   function parkingBlock(name) {
     const c = stationCoords(name); if (!c) return '';
     const ci = crewInfo(name);
+    const parkText = (ci?.park || "").toLowerCase();
+    const limited = /shuttle|no private|no direct|river/.test(parkText);
     return `<div class="parkrow">
       <a class="maps-btn" href="${mapsUrl(c.lat, c.lng)}" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
         Parking in Maps
       </a>
+      <span class="access-pill ${limited?'warn':''}">${limited?'Limited access':'Crew parking'}</span>
       <span class="park-note">${ci?esc(ci.park)+' ':''}${c.custom?'<b>(your pin)</b>':'<span class="approx">approx — verify</span>'}</span>
     </div>`;
   }
@@ -598,25 +706,37 @@
   /* ---- TRACK ---- */
   function renderTrack() {
     const v = $("#view-track"); v.innerHTML = "";
+    if (!hasCourse()) {
+      const card = emptyCourseCard(dataState.message);
+      v.appendChild(card); attachEmptyActions(card);
+      return;
+    }
     const p = project();
     const finishRow = p.rows[p.rows.length - 1];
     const projFinish = finishRow.projected;
     const goalDelta = projFinish - goal();
     const lastDone = p.lastDoneIdx >= 0 ? p.rows[p.lastDoneIdx] : null;
+    const nextCrew = p.rows.find(r => r.idx > p.lastDoneIdx && r.station.crew && r.station.mile > 0 && r.station.mile < COURSE.distance);
 
     const fc = clockFromElapsed(projFinish);
     const badgeCls = deltaClass(goalDelta);
     const badgeTxt = Math.abs(Math.round(goalDelta)) < 1 ? "On plan"
       : (goalDelta > 0 ? "+" + fmtElapsed(goalDelta) + " behind" : fmtElapsed(-goalDelta) + " ahead");
     v.appendChild(el(`<div class="card hero">
-      <div class="card-label">Projected finish · plan ${goalLabel(goal())}</div>
+      <div class="card-label">Projected finish · plan ${goalLabel(goal())}${DEMO_MODE ? " · demo" : ""}</div>
       <div class="hero-row">
         <div><div class="hero-finish">${fmtElapsed(projFinish)}</div><div class="hero-clock">${fc.time} ${fc.day}</div></div>
         <span class="badge ${badgeCls}">${badgeTxt}</span>
       </div>
+      <div class="hero-extra">
+        <div class="hero-mini"><div class="k">Data</div><div class="v">${esc(dataSummary().label)}</div></div>
+        <div class="hero-mini"><div class="k">Next crew</div><div class="v">${nextCrew ? esc(nextCrew.station.name) : "Finish"}</div></div>
+      </div>
       <div class="hero-last">
         ${ lastDone
-          ? `<span>Last in: <b>${esc(lastDone.station.name)}</b></span><span><b>${clockFromElapsed(lastDone.actual).time}</b> · ${fmtDelta(lastDone.delta)} min</span>`
+          ? (lastDone.timed
+            ? `<span>Last in: <b>${esc(lastDone.station.name)}</b></span><span><b>${clockFromElapsed(lastDone.actual).time}</b> · ${fmtDelta(lastDone.delta)} min</span>`
+            : `<span>Last passed: <b>${esc(lastDone.station.name)}</b></span><span>time unknown · projected ${clockFromElapsed(lastDone.projected).time}</span>`)
           : `<span>Race not started — showing the planned schedule.</span>` }
       </div>
     </div>`));
@@ -631,7 +751,7 @@
         <div class="pos-mid">
           <div class="pos-where">${cur ? esc(cur.station.name) : 'Not started'}</div>
           <div class="pos-sub">${cur
-            ? fmtDist(cur.station.mile) + ' · ' + (cur.timed ? 'in ' + clockFromElapsed(cur.actual).time : 'passed ~' + clockFromElapsed(cur.projected).time)
+            ? fmtDist(cur.station.mile) + ' · ' + (cur.timed ? 'in ' + clockFromElapsed(cur.actual).time : 'passed, time unknown')
             : 'at the start line'}</div>
         </div>
         <button class="posbtn" id="pos-fwd" ${atEnd ? 'disabled' : ''}>Reached<br>next ▶</button>
@@ -642,7 +762,6 @@
     v.appendChild(posCard);
 
     // Next crew stop (with crew job info)
-    const nextCrew = p.rows.find(r => r.idx > p.lastDoneIdx && r.station.crew && r.station.mile > 0 && r.station.mile < COURSE.distance);
     if (nextCrew) {
       const ac = clockFromElapsed(nextCrew.projected);
       const card = el(`<div class="card crew-card">
@@ -656,7 +775,9 @@
         </div>
         <div class="crew-grid">
           <div class="stat"><div class="k">Projected arrival</div><div class="v">${ac.time} <small>${ac.day}</small></div></div>
+          <div class="stat"><div class="k">Countdown</div><div class="v">${fmtUntil(nextCrew.projected)}</div></div>
           <div class="stat"><div class="k">Elapsed at stop</div><div class="v">${fmtElapsed(nextCrew.projected)}</div></div>
+          <div class="stat"><div class="k">Leave by</div><div class="v">${esc(nextCrew.station.leaveBy || "—")}</div></div>
         </div>
         ${parkingBlock(nextCrew.station.name)}
         ${nextCrew.station.haveReady ? `<div class="haveready"><div class="k">Have ready</div><div class="v">${esc(nextCrew.station.haveReady)}</div></div>` : ''}
@@ -691,7 +812,7 @@
     const cls = "srow" + (r.isDone ? " done" : "") + (r.isCurrent ? " next" : "");
     const row = el(`<div class="${cls}">
       <div class="mi">${fmtDist(s.mile)}</div>
-      <div class="nm">${esc(s.name)}${s.crew ? '<span class="crewtag">CREW</span>' : ''}${r.isDone ? '<span class="donetag">'+(r.timed?'✓ IN':'✓ passed')+'</span>' : ''}</div>
+      <div class="nm">${esc(s.name)}${s.crew ? '<span class="crewtag">CREW</span>' : ''}${r.isDone ? '<span class="donetag">'+(r.timed?'✓ IN':'✓ passed · no time')+'</span>' : ''}</div>
       <div class="proj">${pc.time}<div class="day">${fmtElapsed(r.projected)}${pc.day?(' · '+pc.day):''}</div></div>
       <div class="delta ${deltaClass(r.delta)}">${r.isDone||r.adjust?fmtDelta(r.delta):''}</div>
     </div>`);
@@ -706,14 +827,18 @@
   function stationEditor(r, full) {
     const s = r.station; const ss = stStation(s.name);
     const st = (flash && flash.name === s.name) ? flash : null;
-    const defaultMsg = "Logging an actual arrival shifts every later projection. "
-      + (writeEndpoint() ? "Saving syncs to the sheet automatically." : "Add an Apps Script URL on the Data tab to write back to the sheet.");
+    const defaultMsg = DEMO_MODE
+      ? "Demo mode saves locally and never writes to the sheet."
+      : "Logging an actual arrival shifts every later projection. "
+        + (writeEndpoint() ? "Saving syncs to the sheet automatically." : "Add an Apps Script URL on the Data tab to write back to the sheet.");
     const reachedNow = ss.reached || ss.actual != null;
-    const c = stationCoords(s.name);
     const ed = el(`<div class="editor">
       <div class="info">Plan <b>${s.etaText || fmtElapsed(r.planned)}</b>${s.haveReady?` · Have ready: ${esc(s.haveReady)}`:''}${s.stopGoal?`<br>${esc(s.stopGoal)}`:''}</div>
       <div class="editor-grid">
         <div class="field"><label>Actual arrival (clock)</label><input type="time" id="ed-actual" value="${ss.actual!=null?clock24FromElapsed(ss.actual):''}"></div>
+        <div class="quick-actions">
+          <button class="btn ghost" id="ed-now">Set to now</button>
+        </div>
         <div class="field"><label>Adjust ± min</label>
           <div class="stepper"><button id="ed-minus">−</button><input id="ed-adjust" inputmode="numeric" value="${ss.adjust||0}"><button id="ed-plus">+</button></div>
         </div>
@@ -726,19 +851,33 @@
         <div class="field"><label>Parking lng</label><input id="ed-lng" inputmode="decimal" placeholder="${crewInfo(s.name)?crewInfo(s.name).lng:'lng'}" value="${ss.lng!=null?ss.lng:''}"></div>
       </div>` : ''}
       <div class="editor-actions">
-        <button class="btn" id="ed-save">Save</button>
-        <button class="btn ghost" id="ed-reached">${reachedNow ? 'Undo reached' : 'Mark reached (no time)'}</button>
-        <button class="btn ghost" id="ed-clear">Clear split</button>
+        <button class="btn big" id="ed-save">Save split</button>
+        <button class="btn big ghost" id="ed-reached">${reachedNow ? 'Undo reached' : 'Mark reached (no time)'}</button>
+        <button class="btn big ghost" id="ed-clear">Clear</button>
       </div>
       <div class="status-line ${st?st.kind:'muted'}" id="ed-status">${st ? esc(st.msg) : defaultMsg}</div>
     </div>`);
     const adj = ed.querySelector("#ed-adjust");
     ed.querySelector("#ed-minus").onclick = () => { adj.value = (parseInt(adj.value||0,10) - 1); };
     ed.querySelector("#ed-plus").onclick  = () => { adj.value = (parseInt(adj.value||0,10) + 1); };
+    ed.querySelector("#ed-now").onclick = () => {
+      const n = nowElapsedNear(r.planned);
+      if (n == null || Math.abs(n - r.planned) > 12 * 60) {
+        setStatus(ed.querySelector("#ed-status"), "Current clock time is too far from the planned arrival for this stop. Enter the arrival time manually.", "warn");
+        return;
+      }
+      ed.querySelector("#ed-actual").value = clock24FromElapsed(n);
+      setStatus(ed.querySelector("#ed-status"), "Set arrival to the current clock time. Save to apply it.", "muted");
+    };
     ed.querySelector("#ed-save").onclick = () => {
       const t = ed.querySelector("#ed-actual").value;
       ss.adjust = parseInt(adj.value||0,10) || 0;
-      ss.actual = t ? elapsedFromClock(t, r.planned) : null;
+      const actual = t ? elapsedFromClock(t, r.planned) : null;
+      if (actual != null && Math.abs(actual - r.planned) > 12 * 60) {
+        setStatus(ed.querySelector("#ed-status"), "That clock time is more than 12 hours from the planned stop time. Check the station or clear the time.", "err");
+        return;
+      }
+      ss.actual = actual;
       if (ss.actual != null) ss.reached = true;
       const noteEl = ed.querySelector("#ed-note"); if (noteEl) ss.note = noteEl.value.trim();
       const latEl = ed.querySelector("#ed-lat"), lngEl = ed.querySelector("#ed-lng");
@@ -756,7 +895,7 @@
         expanded = s.name; render(); openTab(activeTab);
         pushStationToSheet(s.name, document.querySelector("#view-" + activeTab + " #ed-status"));
       } else {
-        flash = { name: s.name, msg: isSplit ? "Saved on this device." : "Saved.", kind: "muted" };
+        flash = { name: s.name, msg: DEMO_MODE ? "Saved in demo mode. Sheet writes are disabled." : (isSplit ? "Saved on this device." : "Saved."), kind: "muted" };
         expanded = s.name; render(); openTab(activeTab);
       }
     };
@@ -772,6 +911,11 @@
   /* ---- PACE ---- */
   function renderPace() {
     const v = $("#view-pace"); v.innerHTML = "";
+    if (!hasCourse()) {
+      const card = emptyCourseCard(dataState.message);
+      v.appendChild(card); attachEmptyActions(card);
+      return;
+    }
     const g = paceGoal();
     const presets = [
       { label:"Plan " + goalLabel(PLAN_FINISH), min: PLAN_FINISH, note:"your sheet plan" },
@@ -795,26 +939,27 @@
 
     const p = project();
     const lastDone = p.lastDoneIdx >= 0 ? p.rows[p.lastDoneIdx] : null;
+    const lastTimed = lastTimedRow(p);
     const fh = el(`<div class="card"><div class="from-here">
-        <input type="checkbox" id="fhToggle" ${state.paceFromHere?'checked':''} ${lastDone?'':'disabled'}>
-        <label for="fhToggle">Pace needed <b>from here</b> ${lastDone?`(last: ${esc(lastDone.station.name)}, ${fmtElapsed(lastDone.actual)})`:'(log a split first)'}</label>
+        <input type="checkbox" id="fhToggle" ${state.paceFromHere&&lastTimed?'checked':''} ${lastTimed?'':'disabled'}>
+        <label for="fhToggle">Pace needed <b>from here</b> ${lastTimed?`(last timed: ${esc(lastTimed.station.name)}, ${fmtElapsed(lastTimed.actual)})`:(lastDone?'(last reached has no time yet)':'(log a timed split first)')}</label>
       </div><div id="paceTableWrap"></div></div>`);
     fh.querySelector("#fhToggle").onchange = (e) => { state.paceFromHere = e.target.checked; save(); render(); openTab('pace'); };
     v.appendChild(fh);
 
-    const fromHere = state.paceFromHere && lastDone;
+    const fromHere = state.paceFromHere && lastTimed;
     const planned = plannedSplits();
     let splits = [], paces = [];
     if (fromHere) {
-      const remGoal = g - lastDone.actual;
-      const planRem = PLAN_FINISH - planned[p.lastDoneIdx];
+      const remGoal = g - lastTimed.actual;
+      const planRem = PLAN_FINISH - planned[lastTimed.idx];
       const factor = planRem > 0 ? remGoal / planRem : 1;
       COURSE.stations.forEach((s,i) => {
-        if (i < p.lastDoneIdx) { splits[i] = state.stations[s.name]?.actual ?? null; paces[i] = null; }
-        else if (i === p.lastDoneIdx) { splits[i] = lastDone.actual; paces[i] = null; }
+        if (i < lastTimed.idx) { splits[i] = state.stations[s.name]?.actual ?? null; paces[i] = null; }
+        else if (i === lastTimed.idx) { splits[i] = lastTimed.actual; paces[i] = null; }
         else {
-          splits[i] = lastDone.actual + (planned[i] - planned[p.lastDoneIdx]) * factor;
-          const prevSplit = splits[i-1] ?? lastDone.actual;
+          splits[i] = lastTimed.actual + (planned[i] - planned[lastTimed.idx]) * factor;
+          const prevSplit = splits[i-1] ?? lastTimed.actual;
           const seg = s.mile - COURSE.stations[i-1].mile;
           paces[i] = seg ? (splits[i] - prevSplit) / seg : null;
         }
@@ -847,6 +992,11 @@
   /* ---- CREW HELPER ---- */
   function renderSplits() {
     const v = $("#view-splits"); v.innerHTML = "";
+    if (!hasCourse()) {
+      const card = emptyCourseCard(dataState.message);
+      v.appendChild(card); attachEmptyActions(card);
+      return;
+    }
     const p = project();
     v.appendChild(el(`<div class="sectiontitle">Crew helper</div>`));
     v.appendChild(el(`<div class="buckle-note" style="margin-top:-0.3rem">Your crew-access stops, in order. Tap <b>Parking in Maps</b> to navigate, read the tips, and add your own notes. Tap a stop to log the runner in.</div>`));
@@ -855,8 +1005,9 @@
     const crewRows = p.rows.filter(r => r.station.crew);
     crewRows.forEach(r => {
       const s = r.station; const ac = clockFromElapsed(r.projected);
-      const doneTag = r.isDone ? `<span class="donetag">${r.timed?'✓ IN':'✓ passed'}</span>` : '';
-      const card = el(`<div class="card crew-helper-card${r.isDone?' done':''}">
+      const doneTag = r.isDone ? `<span class="donetag">${r.timed?'✓ IN':'✓ passed · no time'}</span>` : '';
+      const showTips = r.isCurrent || expanded === s.name;
+      const card = el(`<div class="card crew-helper-card${r.isDone?' done':''}${r.isCurrent?' next':''}">
         <div class="ch-top">
           <div style="flex:1;min-width:0"><div class="crew-name">${esc(s.name)} ${doneTag}</div>
             <div class="crew-mile">${fmtDist(s.mile)} · proj. <b>${ac.time}</b> ${ac.day} · ${fmtElapsed(r.projected)}${r.isDone||r.adjust?` · <span class="${deltaClass(r.delta)} dlt">${fmtDelta(r.delta)} min</span>`:''}</div>
@@ -865,7 +1016,7 @@
         </div>
         ${parkingBlock(s.name)}
         ${s.haveReady ? `<div class="haveready"><div class="k">Have ready</div><div class="v">${esc(s.haveReady)}</div></div>` : ''}
-        ${tipsBlock(s.name)}
+        ${showTips ? tipsBlock(s.name) : ''}
       </div>`);
       card.querySelector(".ch-top").addEventListener("click", () => { expanded = (expanded === s.name ? null : s.name); render(); openTab(activeTab); });
       if (expanded === s.name) card.appendChild(stationEditor(r, true));
@@ -883,38 +1034,62 @@
   /* ---- DATA ---- */
   function renderData() {
     const v = $("#view-data"); v.innerHTML = "";
+    const ds = dataSummary();
+    const connected = !!writeEndpoint();
+    const hardcoded = !!SHEET_WRITE_URL;
+    const healthMsg = dataState.kind === "error" || dataState.kind === "empty" || dataState.kind === "loading" || DEMO_MODE
+      ? dataState.message
+      : (ds.label === "Stale" ? "Last successful sheet sync was " + ds.detail + ". Refresh before relying on shared crew data." : "Live sheet data is available. Last sync: " + ds.detail + ".");
+    const demoHref = DEMO_MODE ? window.location.pathname : window.location.pathname + "?demo=1";
+    const demoLabel = DEMO_MODE ? "Exit demo mode" : "Enable demo mode";
+
+    const health = el(`<div class="card status-card">
+      <div class="card-label">Health</div>
+      ${statusPill()}
+      <div class="status-grid">
+        <div class="stat"><div class="k">Source</div><div class="v">${esc(ds.source)}</div></div>
+        <div class="stat"><div class="k">Stops</div><div class="v">${COURSE.stations.length || "—"}</div></div>
+        <div class="stat"><div class="k">Last sync</div><div class="v">${state.lastSync ? clockFromAbs(state.lastSync) : "—"}</div></div>
+        <div class="stat"><div class="k">Writes</div><div class="v">${DEMO_MODE ? "Demo off" : (connected ? "On" : "Off")}</div></div>
+      </div>
+      <div class="status-line ${ds.cls === 'err' ? 'err' : ds.cls === 'warn' ? 'warn' : 'muted'}">${esc(healthMsg)}</div>
+      <div class="mode-actions">
+        <a class="btn btn-link ${DEMO_MODE ? 'ghost' : ''}" href="${demoHref}">${demoLabel}</a>
+      </div>
+    </div>`);
+    v.appendChild(health);
 
     const sheet = el(`<div class="card">
       <div class="card-label">Data store</div>
       <div class="sheet-chip">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        <div><div class="nm">${esc(SHEET.tab)}</div><div class="sub">${state.lastSync?'Synced '+clockFromAbs(state.lastSync):'Not synced yet'}</div></div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${ds.cls === 'err' ? 'var(--red)' : ds.cls === 'warn' ? 'var(--amber)' : 'var(--green)'}" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <div><div class="nm">${esc(SHEET.tab)}</div><div class="sub">${esc(ds.label)}${state.lastSync?' · '+clockFromAbs(state.lastSync):''}</div></div>
         <a href="${SHEET_EDIT_URL}" target="_blank" rel="noopener">Open sheet ↗</a>
       </div>
       <button class="btn block" id="sh-pull">Refresh from sheet ⤓</button>
-      <div class="status-line muted" id="sh-status">Pulls the live <b>${esc(SHEET.tab)}</b> tab and replaces this device's view with the sheet's current values. Connected and hardcoded.</div>
+      <div class="status-line muted" id="sh-status">Pulls the live <b>${esc(SHEET.tab)}</b> tab and replaces this device's view with the sheet's current values. Empty or corrupt sheet data keeps the embedded plan.</div>
     </div>`);
     sheet.querySelector("#sh-pull").onclick = () => pullFromSheet(sheet.querySelector("#sh-status"), true, true);
     v.appendChild(sheet);
 
-    const hardcoded = !!SHEET_WRITE_URL;
-    const connected = !!writeEndpoint();
     const write = el(`<div class="card">
       <div class="card-label">Write back — Adjust +/- min</div>
       <div class="sheet-chip">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${connected?'var(--green)':'var(--text-muted)'}" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
         <div><div class="nm">${connected ? 'Auto-sync on' : 'Not connected'}</div>
-          <div class="sub">${hardcoded ? 'Hardcoded endpoint — every crew device writes to the sheet.' : (state.writeUrl ? 'Using a per-device endpoint.' : 'Save split writes only on this device until connected.')}</div></div>
+          <div class="sub">${DEMO_MODE ? 'Demo mode — sheet writes are disabled.' : (hardcoded ? 'Hardcoded endpoint — every crew device writes to the sheet.' : (state.writeUrl ? 'Using a per-device endpoint.' : 'Save split writes only on this device until connected.'))}</div></div>
       </div>
-      <div class="help" style="margin-bottom:0.8rem">${hardcoded
+      <div class="help" style="margin-bottom:0.8rem">${DEMO_MODE
+        ? 'Demo mode stores progress locally and never calls the Apps Script endpoint.'
+        : hardcoded
         ? 'The write endpoint is hardcoded to this sheet — <b>Save split</b> updates <code>Adjust +/- min</code> for all crew automatically.'
         : 'To turn on automatic writes: open <a href="'+SHEET_EDIT_URL+'" target="_blank" rel="noopener">the sheet</a> → <b>Extensions → Apps Script</b>, paste the script from the tool\'s CLAUDE.md, then <b>Deploy → New deployment → Web app</b> (Execute as: Me, Access: Anyone). Send Ian the <code>/exec</code> URL to hardcode it, or paste it below for just this device.'}</div>
-      <div class="setting"><label class="lab">Override endpoint (optional)</label><input type="text" id="wr-url" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(state.writeUrl)}"></div>
+      <div class="setting"><label class="lab">Override endpoint (optional)</label><input type="text" id="wr-url" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(state.writeUrl)}" ${DEMO_MODE?'disabled':''}></div>
       <div class="row2">
-        <button class="btn ghost" id="wr-save">Save</button>
+        <button class="btn ghost" id="wr-save" ${DEMO_MODE?'disabled':''}>Save</button>
         <button class="btn" id="wr-push" ${connected?'':'disabled'}>Push all now ⤒</button>
       </div>
-      <div class="status-line ${connected?'ok':'muted'}" id="wr-status">${connected?'Connected — saving a split syncs automatically.':'No write endpoint yet — pushing is disabled.'}</div>
+      <div class="status-line ${connected?'ok':'muted'}" id="wr-status">${DEMO_MODE?'Demo mode — pushing is disabled.':(connected?'Connected — saving a split syncs automatically.':'No write endpoint yet — pushing is disabled.')}</div>
     </div>`);
     write.querySelector("#wr-save").onclick = () => { state.writeUrl = write.querySelector("#wr-url").value.trim(); save(); render(); openTab('data'); };
     write.querySelector("#wr-push").onclick = () => pushAllToSheet(write.querySelector("#wr-status"));
@@ -969,8 +1144,10 @@
   }
   // Parse CSV rows -> {courseRows, adjustByName}
   function ingestSheet(rows) {
+    if (!Array.isArray(rows) || !rows.length) return { courseRows:[], adjustByName:{} };
     let hIdx = 0;
     for (let i = 0; i < Math.min(rows.length, 5); i++) { if (rows[i].join(" ").toLowerCase().match(/crew stop|aid|station|mile|adjust/)) { hIdx = i; break; } }
+    if (!rows[hIdx]) return { courseRows:[], adjustByName:{} };
     const H = rows[hIdx].map(h => h.toLowerCase().trim());
     const find = (...keys) => H.findIndex(h => keys.some(k => h.includes(k)));
     const cMile = find("mile","dist"), cName = find("crew stop","aid","station","location","name"),
@@ -995,37 +1172,63 @@
   // replace=false → background merge on load: take the sheet's adjustments but keep any
   //   local split the sheet doesn't have yet (e.g. logged offline, not pushed).
   async function pullFromSheet(status, loud, replace) {
+    if (DEMO_MODE) {
+      dataState = { kind:"demo", message:"Demo mode uses local sample progress. Sheet refresh is skipped and writes are disabled.", source:"Demo data", lastAttempt:Date.now() };
+      if (loud) setStatus(status, dataState.message, "muted");
+      render(); openTab(activeTab);
+      return;
+    }
+    dataState = { kind:"loading", message:"Refreshing the live sheet…", source:"Sheet", lastAttempt:Date.now() };
     if (loud) setStatus(status, "Refreshing…", "muted");
     try {
       const res = await fetch(SHEET_CSV_URL + "&_cb=" + Date.now(), { cache:"no-store" }); // cache-buster → fresh read
       if (!res.ok) throw new Error("HTTP " + res.status);
       const { courseRows, adjustByName } = ingestSheet(parseCSV(await res.text()));
-      if (courseRows.length) {
-        buildCourse(courseRows);
-        if (replace) {
-          // A filled Adjust cell == that stop was reached; rebuild progress from the sheet
-          // alone, but keep device-local notes & custom parking pins.
-          const ns = {};
-          Object.entries(state.stations).forEach(([nm, ss]) => {
-            if (ss && (ss.note || ss.lat != null || ss.lng != null)) ns[nm] = { adjust:0, actual:null, reached:false, note:ss.note, lat:ss.lat, lng:ss.lng };
-          });
-          Object.entries(adjustByName).forEach(([nm, a]) => { ns[nm] = Object.assign(ns[nm]||{}, { adjust: a, actual: null, reached: true }); });
-          state.stations = ns;
-        } else {
-          Object.entries(adjustByName).forEach(([nm, a]) => { const ss = stStation(nm); ss.adjust = a; ss.reached = true; ss.actual = null; });
-        }
+      if (!courseRows.length) {
+        dataState = { kind:"empty", message:"The live sheet returned no valid stops. Keeping the embedded/saved plan.", source:"Embedded plan", lastAttempt:Date.now() };
+        render(); openTab(activeTab);
+        if (loud) setStatus(status, dataState.message, "warn");
+        return;
+      }
+      if (!buildCourse(courseRows)) {
+        dataState = { kind:"empty", message:"The live sheet data could not be converted into a course. Keeping the embedded/saved plan.", source:"Embedded plan", lastAttempt:Date.now() };
+        render(); openTab(activeTab);
+        if (loud) setStatus(status, dataState.message, "warn");
+        return;
+      }
+      if (replace) {
+        // A filled Adjust cell == that stop was reached; rebuild progress from the sheet
+        // alone, but keep device-local notes & custom parking pins.
+        const ns = {};
+        Object.entries(state.stations).forEach(([nm, ss]) => {
+          if (ss && (ss.note || ss.lat != null || ss.lng != null)) ns[nm] = { adjust:0, actual:null, reached:false, note:ss.note, lat:ss.lat, lng:ss.lng };
+        });
+        Object.entries(adjustByName).forEach(([nm, a]) => { ns[nm] = Object.assign(ns[nm]||{}, { adjust: a, actual: null, reached: true }); });
+        state.stations = ns;
+      } else {
+        Object.entries(adjustByName).forEach(([nm, a]) => {
+          const ss = stStation(nm);
+          ss.adjust = a;
+          ss.reached = true;
+          if (ss.actual == null) ss.actual = null;
+        });
       }
       state.lastSync = Date.now(); save(); render(); openTab(activeTab);
+      dataState = { kind:"synced", message:"Synced " + courseRows.length + " stops from the live sheet.", source:"Sheet", lastAttempt:Date.now() };
+      render(); openTab(activeTab);
       if (loud) setStatus(status, `Synced ${courseRows.length} stops at ${clockFromAbs(state.lastSync)}.`, "ok");
     } catch (e) {
+      dataState = { kind:"error", message:"Couldn't reach the sheet — still using the saved or embedded plan. (" + e.message + ")", source:COURSE.stations.length ? "Saved plan" : "No data", lastAttempt:Date.now() };
+      render(); openTab(activeTab);
       if (loud) setStatus(status, "Couldn't reach the sheet — still using the saved plan. (" + e.message + ")", "err");
     }
   }
   async function pushAllToSheet(status) {
     const url = writeEndpoint();
+    if (DEMO_MODE) { setStatus(status, "Demo mode — no sheet writes were sent.", "muted"); return; }
     if (!url) { setStatus(status, "No write endpoint connected yet.", "err"); return; }
     const p = project();
-    const payload = p.rows.filter(r => r.adjust || r.actual != null).map(r => ({
+    const payload = p.rows.filter(r => r.adjust || r.actual != null || r.reached).map(r => ({
       station: r.station.name, mile: r.station.mile, adjust: r.incAdjust, total: Math.round(r.delta),
       actual: r.actual != null ? clockFromElapsed(r.actual).time : "",
     }));
@@ -1038,8 +1241,10 @@
   }
   async function pushStationToSheet(name, status) {
     const url = writeEndpoint();
+    if (DEMO_MODE) { setStatus(status, "Demo mode — saved locally, no sheet write sent.", "muted"); return; }
     if (!url) { setStatus(status, "No write endpoint connected yet (Data tab).", "err"); return; }
     const r = project().rows.find(x => x.station.name === name);
+    if (!r) { setStatus(status, "Couldn't find that stop in the current course.", "err"); return; }
     setStatus(status, "Pushing…", "muted");
     try {
       await fetch(url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"text/plain" },
@@ -1070,10 +1275,17 @@
   });
 
   /* ── Init ──────────────────────────────────────────────────────────────── */
-  buildCourse(SHEET_SNAPSHOT);   // instant render from the embedded snapshot
+  if (buildCourse(SHEET_SNAPSHOT)) {
+    dataState = DEMO_MODE
+      ? { kind:"demo", message:"Demo mode uses local sample progress. Sheet writes are disabled.", source:"Demo data", lastAttempt:Date.now() }
+      : { kind:"snapshot", message:"Using embedded plan until the sheet responds.", source:"Embedded plan", lastAttempt:Date.now() };
+  } else {
+    dataState = { kind:"empty", message:"The embedded snapshot has no valid stops. Use the Data tab to refresh from the sheet.", source:"No data", lastAttempt:Date.now() };
+  }
+  applyDemoSeed();
   render();
   openTab("track");
-  pullFromSheet(null, false);    // then refresh from the live sheet
+  if (!DEMO_MODE) pullFromSheet(null, false);    // then refresh from the live sheet
   </script>
 </body>
 </html>
