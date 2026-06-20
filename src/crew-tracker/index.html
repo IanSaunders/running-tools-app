@@ -383,35 +383,33 @@
     view:  "https://www.google.com/maps/d/viewer?mid=1RYEuztq4mGBPbZITNXNV1GF0mvjuk-s",
     embed: "https://www.google.com/maps/d/embed?mid=1RYEuztq4mGBPbZITNXNV1GF0mvjuk-s",
   };
+  const CREW_GUIDE_URL = "https://www.wser.org/crew-suggestions/";
 
-  // Stops where the crew physically has access (drives the "Next crew stop" card).
-  // From the crew map's [C ...] tags: Olympic Valley, Robinson, Dusty Corners, Michigan,
-  // Foresthill, Rucky Chucky, Green Gate, Pointed Rocks, Robie Point, Placer HS.
-  const CREW_ACCESS = ["olympic", "robinson", "dusty corners", "michigan", "foresthill", "rucky", "green gate", "pointed", "robie", "finish"];
+  // Single "A crew" access points, per the official WSER crew suggestions
+  // (https://www.wser.org/crew-suggestions/): Robinson Flat, Michigan Bluff, Foresthill,
+  // Driver's Flat / river crossing (Rucky Chucky), Green Gate, Pointed Rocks, Finish.
+  // (Duncan Canyon & Dusty Corners are B-crew only; Robie Point is not an A-crew stop.)
+  const CREW_ACCESS = ["olympic", "robinson", "michigan", "foresthill", "rucky", "green gate", "pointed", "finish"];
   const isCrew = (name) => { const n = (name||"").toLowerCase(); return CREW_ACCESS.some(k => n.includes(k)); };
 
-  // Per-crew-stop logistics. Coordinates + access type are taken from the WSER crew map
-  // (CREW_MAP) placemarks; editable per stop in-app. `key` matches the station name.
+  // A-crew logistics. Coords from the WSER crew map; access type / parking / drive times from
+  // the official crew suggestions. Editable per stop in-app. `key` matches the station name.
   const CREW_INFO = [
     { key:"olympic", lat:39.19563, lng:-120.23647, park:"Olympic Valley / Palisades Tahoe base — start area.",
-      tips:"5:00 AM start. Cold up high — warm throwaway layers. Sort drop bags and your plan to Robinson Flat (first crew access, mi 30)." },
-    { key:"robinson", lat:39.15582, lng:-120.503, park:"Crew map: shuttle only — no private vehicles; ride the crew shuttle from Foresthill, leave early.",
+      tips:"5:00 AM start. Cold up high — warm throwaway layers. Sort drop bags and head out: it's ~2.5 hr to Robinson Flat (first crew access, mi 30)." },
+    { key:"robinson", lat:39.15582, lng:-120.503, park:"Shuttle from Sailor Flat parking — no private vehicles. ~2.5 hr from Olympic Valley; leave early.",
       tips:"First crew access (mi 30) after a long, dusty, often hot stretch — and the brutal canyons come next. Load ice, cold fluids, calories, cooling. Drop-bag stop. Keep it efficient." },
-    { key:"dusty corners", lat:39.0979, lng:-120.58, park:"Crew map: drive-in, 1 vehicle per crew.",
-      tips:"Mi 38, into the heat of the canyons. Cool aggressively — ice, cold fluids — and send the runner out eating and drinking." },
-    { key:"michigan", lat:39.04097, lng:-120.73503, park:"Crew map: shuttle only. Narrow roads — arrive early.",
+    { key:"michigan", lat:39.04097, lng:-120.73503, park:"Shuttle bus. ~1.25 hr from Robinson Flat. Narrow roads — arrive early.",
       tips:"Mi 55, right after the three big canyons — runner often arrives hot and depleted. Core cooling + calories + stomach check first. Pacers NOT allowed yet (Foresthill is pickup)." },
-    { key:"foresthill", lat:39.02094, lng:-120.81297, park:"Crew map: drive-in. Pacer pickup — follow Foresthill Rd parking.",
+    { key:"foresthill", lat:39.02094, lng:-120.81297, park:"Drive-in. ~20 min from Michigan Bluff. Pacer pickup — follow Foresthill Rd parking.",
       tips:"Mi 62 — major hub and PACER pickup. Hand off night kit (headlamp, layers, backup light), restock for the long California St descent. Last easy road access for a while." },
-    { key:"rucky", lat:38.96264, lng:-120.93066, park:"Crew map: shuttle access (far side). Pacer point — river crossing.",
+    { key:"rucky", lat:38.96264, lng:-120.93066, park:"Driver's Flat shuttle (2.5 mi) to the near-side river crossing. ~1 hr from Foresthill.",
       tips:"Mi 78, the river crossing. Expect wet feet; have a dry-sock/shoe option and a warm layer ready." },
-    { key:"green gate", lat:38.9509, lng:-120.93078, park:"Crew map: on foot only (hike in) — no road. Pacer point.",
+    { key:"green gate", lat:38.9509, lng:-120.93078, park:"Via Sliger Mine Road, then on foot ~1.25 mi. Extremely limited parking — pacer point.",
       tips:"Mi 80, top of the climb out of the river. Post-river reset: dry socks, lights check, calories. Long runnable night section follows." },
-    { key:"pointed", lat:38.89522, lng:-121.02357, park:"Crew map: on foot from the Hwy 49 crossing parking. Pacer point — arrive early, it gets busy.",
-      tips:"Mi ~93–94, late-night/early-AM. Reassure and assess: stomach, lights, feet. Climb then runnable to No Hands Bridge. Almost home." },
-    { key:"robie", lat:38.89241, lng:-121.05387, park:"Crew map: on foot — short walk from Auburn. Pacer point.",
-      tips:"Mi 99 — the last climb. Power-hike up, then it's all downhill/road to the track. Encouragement only; keep moving." },
-    { key:"finish", lat:38.89472, lng:-121.0678, park:"Placer High School, Auburn — finish-line parking.",
+    { key:"pointed", lat:38.89522, lng:-121.02357, park:"Park at the Cool / No Hands (Cool State Park) lot, then on foot ~0.75 mi. ~1 hr from Foresthill. ⚠️ Do NOT stop at the Hwy 49 crossing — risks runner DQ.",
+      tips:"Mi ~93–94, late-night/early-AM. This is the crew point for the Hwy 49 area — NOT the road crossing itself. Reassure and assess: stomach, lights, feet. Almost home." },
+    { key:"finish", lat:38.89472, lng:-121.0678, park:"Placer High School, Auburn — drive-in. ~30 min from Pointed Rocks.",
       tips:"The finish on the Placer HS track. Have warm/dry clothes, recovery food/drink, a chair. Final 1.3 mi from Robie Point: road climb, then a lap of the track." },
   ];
   const crewInfo = (name) => { const n = (name||"").toLowerCase(); return CREW_INFO.find(c => n.includes(c.key)) || null; };
@@ -1120,7 +1118,7 @@
       <div class="card-label">Crew course map</div>
       <iframe class="crewmap-frame" src="${CREW_MAP.embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="WSER crew map"></iframe>
       <a class="btn block" href="${CREW_MAP.view}" target="_blank" rel="noopener" style="margin-top:0;text-decoration:none;text-align:center">Open full crew map ↗</a>
-      <div class="buckle-note" style="margin-top:0.6rem;margin-bottom:0">Every aid station with crew-access type (shuttle / drive-in / on foot), the course route, and parking. The per-stop pins below open this map's exact parking coordinates.</div>
+      <div class="buckle-note" style="margin-top:0.6rem;margin-bottom:0"><b>A-crew route</b> (single crew). Stops below follow the official <a href="${CREW_GUIDE_URL}" target="_blank" rel="noopener">WSER crew suggestions</a>: Robinson Flat, Michigan Bluff, Foresthill, river crossing, Green Gate, Pointed Rocks, Finish. <b>One car per runner per aid station — parking is very limited.</b></div>
     </div>`));
 
     // Crew-access stops as rich cards

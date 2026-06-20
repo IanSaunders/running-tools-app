@@ -96,11 +96,16 @@ no separate per-row push button anymore — saving is the push.
 ### Crew map
 `CREW_MAP` holds the shared WSER "My Maps" (mid `1RYEuztq4mGBPbZITNXNV1GF0mvjuk-s`). It's
 embedded (iframe `…/maps/d/embed?mid=…`) at the top of the Crew tab with an "Open full crew
-map" link to the viewer. The per-stop parking pins in `CREW_INFO` (coords + access type:
-shuttle / drive-in / on foot / pacer) are taken from this map's placemarks, and `CREW_ACCESS`
-matches its `[C …]` tags (Olympic Valley, Robinson, Dusty Corners, Michigan, Foresthill, Rucky
-Chucky, Green Gate, Pointed Rocks, Robie Point, Placer HS). To refresh from an updated map:
-`curl -sL "https://www.google.com/maps/d/kml?mid=<mid>&forcekml=1"` and re-read the placemarks.
+map" link to the viewer. Per-stop pin **coordinates** in `CREW_INFO` come from this map's
+placemarks (refresh with `curl -sL "https://www.google.com/maps/d/kml?mid=<mid>&forcekml=1"`).
+
+`CREW_ACCESS` and the per-stop **access type / parking / drive times** follow the official
+[WSER crew suggestions](https://www.wser.org/crew-suggestions/) for a **single "A crew"**:
+Robinson Flat (shuttle from Sailor Flat), Michigan Bluff (shuttle), Foresthill (drive-in),
+river crossing/Driver's Flat (Rucky Chucky), Green Gate (on foot), Pointed Rocks (on foot from
+the Cool lot — **not** the Hwy 49 crossing; stopping there risks DQ), Finish. Duncan Canyon &
+Dusty Corners are B-crew only and Robie Point isn't an A-crew stop, so they're not crew stops
+here. If the runner adds a B crew, add those keys back to `CREW_ACCESS`/`CREW_INFO`.
 
 ### Units
 `state.units` ('imperial' | 'metric'). Helpers `toDist`/`fmtDist`/`toPace`/`fmtPaceU` convert
