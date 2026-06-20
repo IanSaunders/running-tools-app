@@ -120,6 +120,8 @@
     .haveready .v { font-size: 0.92rem; font-weight: 600; margin-top: 0.15rem; line-height: 1.45; }
     .stopgoal { margin-top: 0.55rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; }
     .stopgoal b { color: var(--text); font-weight: 700; }
+    .more-link { margin-top: 0.7rem; font-size: 0.78rem; font-weight: 800; color: var(--orange); cursor: pointer; }
+    .more-link:active { opacity: 0.7; }
 
     /* parking + tips */
     .parkrow { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
@@ -683,7 +685,7 @@
     v.appendChild(listCard);
   }
 
-  function stationRow(r) {
+  function stationRow(r, full) {
     const s = r.station;
     const pc = clockFromElapsed(r.projected);
     const cls = "srow" + (r.isDone ? " done" : "") + (r.isCurrent ? " next" : "");
@@ -696,11 +698,12 @@
     row.addEventListener("click", () => { expanded = (expanded === s.name ? null : s.name); render(); openTab(activeTab); });
     const wrap = document.createElement("div");
     wrap.appendChild(row);
-    if (expanded === s.name) wrap.appendChild(stationEditor(r));
+    if (expanded === s.name) wrap.appendChild(stationEditor(r, full));
     return wrap;
   }
 
-  function stationEditor(r) {
+  // full=true (Crew tab) also exposes the crew note + parking coordinate fields.
+  function stationEditor(r, full) {
     const s = r.station; const ss = stStation(s.name);
     const st = (flash && flash.name === s.name) ? flash : null;
     const defaultMsg = "Logging an actual arrival shifts every later projection. "
@@ -709,18 +712,16 @@
     const c = stationCoords(s.name);
     const ed = el(`<div class="editor">
       <div class="info">Plan <b>${s.etaText || fmtElapsed(r.planned)}</b>${s.haveReady?` · Have ready: ${esc(s.haveReady)}`:''}${s.stopGoal?`<br>${esc(s.stopGoal)}`:''}</div>
-      ${parkingBlock(s.name)}
-      ${tipsBlock(s.name)}
       <div class="editor-grid">
         <div class="field"><label>Actual arrival (clock)</label><input type="time" id="ed-actual" value="${ss.actual!=null?clock24FromElapsed(ss.actual):''}"></div>
         <div class="field"><label>Adjust ± min</label>
           <div class="stepper"><button id="ed-minus">−</button><input id="ed-adjust" inputmode="numeric" value="${ss.adjust||0}"><button id="ed-plus">+</button></div>
         </div>
       </div>
-      <div class="editor-grid" style="margin-top:0.6rem">
+      ${full ? `<div class="editor-grid" style="margin-top:0.6rem">
         <div class="field wide"><label>Crew note / tip (saved on this device)</label><textarea id="ed-note" placeholder="Anything useful for here — parking, access, what to watch for…">${esc(ss.note||'')}</textarea></div>
-      </div>
-      ${s.crew ? `<div class="editor-grid" style="margin-top:0.5rem">
+      </div>` : ''}
+      ${full && s.crew ? `<div class="editor-grid" style="margin-top:0.5rem">
         <div class="field"><label>Parking lat</label><input id="ed-lat" inputmode="decimal" placeholder="${crewInfo(s.name)?crewInfo(s.name).lat:'lat'}" value="${ss.lat!=null?ss.lat:''}"></div>
         <div class="field"><label>Parking lng</label><input id="ed-lng" inputmode="decimal" placeholder="${crewInfo(s.name)?crewInfo(s.name).lng:'lng'}" value="${ss.lng!=null?ss.lng:''}"></div>
       </div>` : ''}
@@ -867,7 +868,7 @@
         ${tipsBlock(s.name)}
       </div>`);
       card.querySelector(".ch-top").addEventListener("click", () => { expanded = (expanded === s.name ? null : s.name); render(); openTab(activeTab); });
-      if (expanded === s.name) card.appendChild(stationEditor(r));
+      if (expanded === s.name) card.appendChild(stationEditor(r, true));
       v.appendChild(card);
     });
 
@@ -875,7 +876,7 @@
     v.appendChild(el(`<div class="sectiontitle" style="margin-top:1.4rem">Full schedule — every stop</div>`));
     const card = el(`<div class="card"><div class="rows" id="allRows"></div></div>`);
     const wrap = card.querySelector("#allRows");
-    p.rows.forEach(r => wrap.appendChild(stationRow(r)));
+    p.rows.forEach(r => wrap.appendChild(stationRow(r, true)));
     v.appendChild(card);
   }
 
