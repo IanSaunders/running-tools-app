@@ -149,6 +149,7 @@
     .parkrow { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
     .maps-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--orange); color: #fff;
       text-decoration: none; font-weight: 800; font-size: 0.82rem; padding: 0.45rem 0.75rem; border-radius: 999px; white-space: nowrap; }
+    .maps-btn.apple { background: #22272E; }
     .maps-btn:active { transform: translateY(1px); }
     .access-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.28rem 0.55rem; font-size: 0.68rem; font-weight: 850; background: var(--green-bg); color: var(--green); }
     .access-pill.warn { background: var(--amber-bg); color: var(--amber); }
@@ -403,7 +404,8 @@
     if (ss.lat != null && ss.lng != null) return { lat: ss.lat, lng: ss.lng, custom: true };
     const ci = crewInfo(name); return ci ? { lat: ci.lat, lng: ci.lng, custom: false } : null;
   }
-  const mapsUrl = (lat, lng) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const googleMapsUrl = (lat, lng) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const appleMapsUrl = (lat, lng) => `https://maps.apple.com/?ll=${lat},${lng}&q=Parking`;
 
   // Embedded snapshot of "Crew - app" (offline default; refreshed from live sheet on load).
   const SHEET_SNAPSHOT = [
@@ -780,9 +782,13 @@
     const parkText = (ci?.park || "").toLowerCase();
     const limited = /shuttle|no private|no direct|river/.test(parkText);
     return `<div class="parkrow">
-      <a class="maps-btn" href="${mapsUrl(c.lat, c.lng)}" target="_blank" rel="noopener">
+      <a class="maps-btn apple" href="${appleMapsUrl(c.lat, c.lng)}" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-        Parking in Maps
+        Apple Maps
+      </a>
+      <a class="maps-btn google" href="${googleMapsUrl(c.lat, c.lng)}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        Google Maps
       </a>
       <span class="access-pill ${limited?'warn':''}">${limited?'Limited access':'Crew parking'}</span>
       <span class="park-note">${ci?esc(ci.park)+' ':''}${c.custom?'<b>(your pin)</b>':'<span class="approx">approx — verify</span>'}</span>
@@ -1091,7 +1097,7 @@
     }
     const p = project();
     v.appendChild(el(`<div class="sectiontitle">Crew helper</div>`));
-    v.appendChild(el(`<div class="buckle-note" style="margin-top:-0.3rem">Your crew-access stops, in order. Tap <b>Parking in Maps</b> to navigate, read the tips, and add your own notes. Tap a stop to log the runner in.</div>`));
+    v.appendChild(el(`<div class="buckle-note" style="margin-top:-0.3rem">Your crew-access stops, in order. Use <b>Apple Maps</b> or <b>Google Maps</b> to navigate, read the tips, and add your own notes. Tap a stop to log the runner in.</div>`));
 
     // Crew-access stops as rich cards
     const crewRows = p.rows.filter(r => r.station.crew);
