@@ -93,6 +93,15 @@ no separate per-row push button anymore — saving is the push.
 - **Data**: the hardcoded sheet (synced status + Open/Refresh), the optional push-back
   Apps Script URL, **units** (mi/km), race setup (runner / start / comparison goal), reset.
 
+### Crew map
+`CREW_MAP` holds the shared WSER "My Maps" (mid `1RYEuztq4mGBPbZITNXNV1GF0mvjuk-s`). It's
+embedded (iframe `…/maps/d/embed?mid=…`) at the top of the Crew tab with an "Open full crew
+map" link to the viewer. The per-stop parking pins in `CREW_INFO` (coords + access type:
+shuttle / drive-in / on foot / pacer) are taken from this map's placemarks, and `CREW_ACCESS`
+matches its `[C …]` tags (Olympic Valley, Robinson, Dusty Corners, Michigan, Foresthill, Rucky
+Chucky, Green Gate, Pointed Rocks, Robie Point, Placer HS). To refresh from an updated map:
+`curl -sL "https://www.google.com/maps/d/kml?mid=<mid>&forcekml=1"` and re-read the placemarks.
+
 ### Units
 `state.units` ('imperial' | 'metric'). Helpers `toDist`/`fmtDist`/`toPace`/`fmtPaceU` convert
 miles→km and min/mi→min/km across every distance and pace display.

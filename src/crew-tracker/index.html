@@ -156,6 +156,8 @@
     .park-note { font-size: 0.74rem; color: var(--text-muted); line-height: 1.4; flex: 1; min-width: 9rem; }
     .park-note b { color: var(--text); }
     .approx { color: var(--amber); font-weight: 700; }
+    .frommap { color: var(--text-muted); font-weight: 700; }
+    .crewmap-frame { width: 100%; height: 280px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 0.7rem; }
     .tips { margin-top: 0.7rem; background: #f4f8ff; border: 1px solid #dbe7fb; border-radius: 10px; padding: 0.6rem 0.7rem; }
     .tips-k { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #2c61c4; }
     .tips-v { font-size: 0.86rem; line-height: 1.5; margin-top: 0.15rem; }
@@ -373,29 +375,43 @@
   const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbxmOGapx1mlqfbX-Qx3MGv1J5rhwgu_h-j9_ce1JIl4wrdokc_lJgw_1vWulQAlGbEaFA/exec";
   const writeEndpoint = () => DEMO_MODE ? "" : ((state.writeUrl && state.writeUrl.trim()) || SHEET_WRITE_URL);
 
+  // Shared WSER crew course map (Google "My Maps"). Embedded on the Crew tab; the parking
+  // coordinates below are taken from its placemarks.
+  const CREW_MAP = {
+    mid:   "1RYEuztq4mGBPbZITNXNV1GF0mvjuk-s",
+    short: "https://goo.gl/maps/hqBLFP6StButQg6P9",
+    view:  "https://www.google.com/maps/d/viewer?mid=1RYEuztq4mGBPbZITNXNV1GF0mvjuk-s",
+    embed: "https://www.google.com/maps/d/embed?mid=1RYEuztq4mGBPbZITNXNV1GF0mvjuk-s",
+  };
+
   // Stops where the crew physically has access (drives the "Next crew stop" card).
-  const CREW_ACCESS = ["start", "robinson", "michigan", "foresthill", "rucky", "green gate", "highway 49", "finish"];
+  // From the crew map's [C ...] tags: Olympic Valley, Robinson, Dusty Corners, Michigan,
+  // Foresthill, Rucky Chucky, Green Gate, Pointed Rocks, Robie Point, Placer HS.
+  const CREW_ACCESS = ["olympic", "robinson", "dusty corners", "michigan", "foresthill", "rucky", "green gate", "pointed", "robie", "finish"];
   const isCrew = (name) => { const n = (name||"").toLowerCase(); return CREW_ACCESS.some(k => n.includes(k)); };
 
-  // Per-crew-stop logistics: approximate parking coordinates + tips for real-time planning.
-  // Coords are best-effort and EDITABLE in-app — verify against the official WS crew guide.
-  // `key` matches the station name (lowercase substring).
+  // Per-crew-stop logistics. Coordinates + access type are taken from the WSER crew map
+  // (CREW_MAP) placemarks; editable per stop in-app. `key` matches the station name.
   const CREW_INFO = [
-    { key:"olympic", lat:39.1968, lng:-120.2357, park:"Olympic Valley / Palisades Tahoe base area.",
-      tips:"5:00 AM start. Cold up high — have warm throwaway layers. Sort drop bags and your plan to reach Robinson Flat (first crew access, mile 30)." },
-    { key:"robinson", lat:39.1544, lng:-120.5006, park:"No private vehicles to the aid station — ride the official crew shuttle from Foresthill. Check the shuttle schedule and leave early.",
+    { key:"olympic", lat:39.19563, lng:-120.23647, park:"Olympic Valley / Palisades Tahoe base — start area.",
+      tips:"5:00 AM start. Cold up high — warm throwaway layers. Sort drop bags and your plan to Robinson Flat (first crew access, mi 30)." },
+    { key:"robinson", lat:39.15582, lng:-120.503, park:"Crew map: shuttle only — no private vehicles; ride the crew shuttle from Foresthill, leave early.",
       tips:"First crew access (mi 30) after a long, dusty, often hot stretch — and the brutal canyons come next. Load ice, cold fluids, calories, cooling. Drop-bag stop. Keep it efficient." },
-    { key:"michigan", lat:39.0386, lng:-120.7375, park:"Michigan Bluff — follow race parking; narrow roads, arrive early.",
+    { key:"dusty corners", lat:39.0979, lng:-120.58, park:"Crew map: drive-in, 1 vehicle per crew.",
+      tips:"Mi 38, into the heat of the canyons. Cool aggressively — ice, cold fluids — and send the runner out eating and drinking." },
+    { key:"michigan", lat:39.04097, lng:-120.73503, park:"Crew map: shuttle only. Narrow roads — arrive early.",
       tips:"Mi 55, right after the three big canyons — runner often arrives hot and depleted. Core cooling + calories + stomach check first. Pacers NOT allowed yet (Foresthill is pickup)." },
-    { key:"foresthill", lat:39.0188, lng:-120.8172, park:"Foresthill — follow signs near Foresthill Elementary / Foresthill Rd.",
+    { key:"foresthill", lat:39.02094, lng:-120.81297, park:"Crew map: drive-in. Pacer pickup — follow Foresthill Rd parking.",
       tips:"Mi 62 — major hub and PACER pickup. Hand off night kit (headlamp, layers, backup light), restock for the long California St descent. Last easy road access for a while." },
-    { key:"rucky", lat:38.9939, lng:-120.9430, park:"River crossing — generally NO crew vehicle access. Crew/pacers reach this side via the Green Gate shuttle; confirm in the crew guide.",
-      tips:"Mi 78, the river crossing. Expect wet feet; have a dry-sock/shoe option and a warm layer ready if you can get here." },
-    { key:"green gate", lat:38.9980, lng:-120.9290, park:"Pacer/crew access via shuttle only — no direct road. Confirm access in the crew guide.",
+    { key:"rucky", lat:38.96264, lng:-120.93066, park:"Crew map: shuttle access (far side). Pacer point — river crossing.",
+      tips:"Mi 78, the river crossing. Expect wet feet; have a dry-sock/shoe option and a warm layer ready." },
+    { key:"green gate", lat:38.9509, lng:-120.93078, park:"Crew map: on foot only (hike in) — no road. Pacer point.",
       tips:"Mi 80, top of the climb out of the river. Post-river reset: dry socks, lights check, calories. Long runnable night section follows." },
-    { key:"highway 49", lat:38.9189, lng:-121.0228, park:"Hwy 49 Crossing — designated crew parking/shuttle near Auburn; arrive early, it gets busy.",
-      tips:"Mi 93, late-night/early-AM. Reassure and assess: stomach, lights, feet. Climb then runnable to No Hands Bridge. Almost home." },
-    { key:"finish", lat:38.8966, lng:-121.0769, park:"Placer High School, Auburn — finish-line parking per race info.",
+    { key:"pointed", lat:38.89522, lng:-121.02357, park:"Crew map: on foot from the Hwy 49 crossing parking. Pacer point — arrive early, it gets busy.",
+      tips:"Mi ~93–94, late-night/early-AM. Reassure and assess: stomach, lights, feet. Climb then runnable to No Hands Bridge. Almost home." },
+    { key:"robie", lat:38.89241, lng:-121.05387, park:"Crew map: on foot — short walk from Auburn. Pacer point.",
+      tips:"Mi 99 — the last climb. Power-hike up, then it's all downhill/road to the track. Encouragement only; keep moving." },
+    { key:"finish", lat:38.89472, lng:-121.0678, park:"Placer High School, Auburn — finish-line parking.",
       tips:"The finish on the Placer HS track. Have warm/dry clothes, recovery food/drink, a chair. Final 1.3 mi from Robie Point: road climb, then a lap of the track." },
   ];
   const crewInfo = (name) => { const n = (name||"").toLowerCase(); return CREW_INFO.find(c => n.includes(c.key)) || null; };
@@ -791,7 +807,7 @@
         Google Maps
       </a>
       <span class="access-pill ${limited?'warn':''}">${limited?'Limited access':'Crew parking'}</span>
-      <span class="park-note">${ci?esc(ci.park)+' ':''}${c.custom?'<b>(your pin)</b>':'<span class="approx">approx — verify</span>'}</span>
+      <span class="park-note">${ci?esc(ci.park)+' ':''}${c.custom?'<b>(your pin)</b>':'<span class="frommap">from crew map</span>'}</span>
     </div>`;
   }
   function tipsBlock(name) {
@@ -1098,6 +1114,14 @@
     const p = project();
     v.appendChild(el(`<div class="sectiontitle">Crew helper</div>`));
     v.appendChild(el(`<div class="buckle-note" style="margin-top:-0.3rem">Your crew-access stops, in order. Use <b>Apple Maps</b> or <b>Google Maps</b> to navigate, read the tips, and add your own notes. Tap a stop to log the runner in.</div>`));
+
+    // Shared WSER crew course map
+    v.appendChild(el(`<div class="card">
+      <div class="card-label">Crew course map</div>
+      <iframe class="crewmap-frame" src="${CREW_MAP.embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="WSER crew map"></iframe>
+      <a class="btn block" href="${CREW_MAP.view}" target="_blank" rel="noopener" style="margin-top:0;text-decoration:none;text-align:center">Open full crew map ↗</a>
+      <div class="buckle-note" style="margin-top:0.6rem;margin-bottom:0">Every aid station with crew-access type (shuttle / drive-in / on foot), the course route, and parking. The per-stop pins below open this map's exact parking coordinates.</div>
+    </div>`));
 
     // Crew-access stops as rich cards
     const crewRows = p.rows.filter(r => r.station.crew);
