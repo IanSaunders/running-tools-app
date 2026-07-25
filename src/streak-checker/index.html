@@ -648,6 +648,33 @@
       return toLocalDateString(run.start_date);
     }
 
+    // All local calendar days a run covers, from its start date through
+    // start + elapsed_time. An overnight run (e.g. a 100-miler crossing
+    // midnight) covers two or more streak days.
+    function getRunLocalDates(run) {
+      let start;
+      if (run.start_date_local) {
+        const [y, m, d] = run.start_date_local.substring(0, 10).split('-').map(Number);
+        const [hh, mm, ss] = run.start_date_local.substring(11, 19).split(':').map(Number);
+        start = new Date(y, m - 1, d, hh || 0, mm || 0, ss || 0);
+      } else {
+        start = new Date(run.start_date);
+      }
+      const end = new Date(start.getTime() + (run.elapsed_time || 0) * 1000);
+
+      const dates = [];
+      let cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      while (cursor <= endDay) {
+        const y = cursor.getFullYear();
+        const m = String(cursor.getMonth() + 1).padStart(2, '0');
+        const d = String(cursor.getDate()).padStart(2, '0');
+        dates.push(`${y}-${m}-${d}`);
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+      }
+      return dates;
+    }
+
     function formatDate(dateStr) {
       const [y, m, d] = dateStr.split('-').map(Number);
       return new Intl.DateTimeFormat('en-GB', {
@@ -689,9 +716,10 @@
     function groupRunsByDate(runs) {
       const map = new Map();
       for (const run of runs) {
-        const date = getRunLocalDate(run);
-        if (!map.has(date)) map.set(date, []);
-        map.get(date).push(run);
+        for (const date of getRunLocalDates(run)) {
+          if (!map.has(date)) map.set(date, []);
+          map.get(date).push(run);
+        }
       }
       return map;
     }
@@ -716,27 +744,18 @@
       return sorted[0];
     }
 
-    function validateStreakNumbers(streakRuns) {
-      // Sort ascending by start_date
-      const sorted = [...streakRuns].sort(
-        (a, b) => new Date(a.start_date) - new Date(b.start_date)
-      );
-
-      // Find anchor: most recent run with a parsed number
-      let anchorIndex = -1;
-      let anchorNumber = null;
-      for (let i = sorted.length - 1; i >= 0; i--) {
-        const n = parseLastNumber(sorted[i].name);
-        if (n !== null) {
-          anchorIndex = i;
-          anchorNumber = n;
-          break;
-        }
-      }
-
-      return sorted.map((run, i) => {
+    // Entries are ascending; each covers one run over one or more consecutive
+    // streak days (firstNumber..lastNumber). A multi-day run's title must end
+    // with the number of its *last* covered day (e.g. "326/327" parses to 327)
+    // so the next day's run continues the sequence correctly.
+    function validateStreakEntries(entries) {
+      return entries.map(entry => {
+        const { run, firstNumber, lastNumber, firstDate, lastDate } = entry;
         const parsedNumber = parseLastNumber(run.name);
-        const expectedNumber = i + 1;
+        const expectedNumber = lastNumber;
+        const expectedLabel = firstNumber === lastNumber
+          ? String(lastNumber)
+          : Array.from({ length: lastNumber - firstNumber + 1 }, (_, i) => firstNumber + i).join('/');
         let status = 'no-number';
 
         if (parsedNumber === null) {
@@ -750,12 +769,15 @@
         return {
           id:             run.id,
           name:           run.name,
-          localDate:      getRunLocalDate(run),
+          localDate:      firstDate,
+          endDate:        lastDate,
+          dayCount:       lastNumber - firstNumber + 1,
           distance:       run.distance,
           elapsed_time:   run.elapsed_time,
           isRace:         run.workout_type === 1,
           parsedNumber,
           expectedNumber,
+          expectedLabel,
           status,
         };
       });
@@ -790,31 +812,43 @@
       // Process streak dates ascending so we can establish a sequence
       const streakDatesAsc = [...streakDates].reverse();
 
-      // Pass 1: pick one run per day by heuristic (no sequence knowledge yet)
-      const pass1 = streakDatesAsc.map(date => pickStreakRun(byDate.get(date) || []));
+      // Pick one run per day using its 1-based expected number
+      const dayPicks = streakDatesAsc.map((date, i) => ({
+        date,
+        expectedNumber: i + 1,
+        run: pickStreakRun(byDate.get(date) || [], i + 1),
+      }));
 
-      // Find anchor: most recent picked run that has a number in its title
-      let anchorIdx = -1, anchorNumber = null;
-      for (let i = pass1.length - 1; i >= 0; i--) {
-        const n = parseLastNumber(pass1[i].name);
-        if (n !== null) { anchorIdx = i; anchorNumber = n; break; }
+      // Merge consecutive days covered by the same run (e.g. an overnight
+      // ultra crossing midnight) into a single entry spanning those days.
+      const entries = [];
+      for (const pick of dayPicks) {
+        const prev = entries[entries.length - 1];
+        if (prev && prev.run.id === pick.run.id) {
+          prev.lastNumber = pick.expectedNumber;
+          prev.lastDate = pick.date;
+        } else {
+          entries.push({
+            run:         pick.run,
+            firstNumber: pick.expectedNumber,
+            lastNumber:  pick.expectedNumber,
+            firstDate:   pick.date,
+            lastDate:    pick.date,
+          });
+        }
       }
 
-      // Pass 2: re-pick each day using 1-based expected number
-      const pickedRuns = streakDatesAsc.map((date, i) => {
-        return pickStreakRun(byDate.get(date) || [], i + 1);
-      });
+      // Validate the merged entries
+      const streakRuns = validateStreakEntries(entries);
 
-      // Validate the one-per-day picks
-      const streakRuns = validateStreakNumbers(pickedRuns);
-
-      // Next number is always streak length + 1
-      const mostRecentRun = pickedRuns[pickedRuns.length - 1] || null;
+      // Next number is always streak length (in days) + 1
+      const lastEntry = entries[entries.length - 1] || null;
+      const mostRecentRun = lastEntry ? lastEntry.run : null;
       const nextNumber = streakDates.length + 1;
 
-      // Totals across all picked streak runs
-      const totalDistance = pickedRuns.reduce((sum, r) => sum + (r.distance || 0), 0);
-      const totalTime     = pickedRuns.reduce((sum, r) => sum + (r.elapsed_time || 0), 0);
+      // Totals across unique streak runs (a multi-day run counts once)
+      const totalDistance = entries.reduce((sum, e) => sum + (e.run.distance || 0), 0);
+      const totalTime     = entries.reduce((sum, e) => sum + (e.run.elapsed_time || 0), 0);
 
       return {
         streakDays: streakDates.length,
@@ -1036,17 +1070,21 @@
       // Build table rows (descending by date)
       const tableRows = [...streakRuns].reverse().map(run => {
         const canFix = (run.status === 'error' || run.status === 'no-number') && run.expectedNumber !== null;
-        const fixedName = canFix ? buildFixedName(run.name, run.expectedNumber) : '';
+        const fixedName = canFix ? buildFixedName(run.name, run.expectedLabel) : '';
+        const dateLabel = run.dayCount > 1
+          ? `${formatDate(run.localDate)} – ${formatDate(run.endDate)}`
+          : formatDate(run.localDate);
         return `
         <tr data-activity-id="${run.id}">
-          <td class="td-date">${escapeHtml(formatDate(run.localDate))}</td>
+          <td class="td-date">${escapeHtml(dateLabel)}</td>
           <td class="td-title">
             <a href="https://www.strava.com/activities/${run.id}" target="_blank" rel="noopener">${escapeHtml(run.name)}</a>
             ${run.isRace ? '<span class="badge badge-race">🏆 Race</span>' : ''}
+            ${run.dayCount > 1 ? `<span class="badge badge-ok" title="This run crossed midnight and counts for ${run.dayCount} streak days">🌙 ${run.dayCount} days</span>` : ''}
           </td>
           <td class="td-dist">${formatDistance(run.distance)}</td>
           <td class="td-num">${run.parsedNumber !== null ? run.parsedNumber : '—'}</td>
-          <td class="td-num">${run.expectedNumber !== null ? run.expectedNumber : '—'}</td>
+          <td class="td-num">${run.expectedNumber !== null ? escapeHtml(run.expectedLabel) : '—'}</td>
           <td>
             <div style="display:flex;align-items:center;gap:0.5rem;">
               ${badgeHtml(run.status)}

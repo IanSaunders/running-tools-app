@@ -81,13 +81,14 @@ rather than a dead-end:
 - **Run type filter** — includes `sport_type` values `Run`, `TrailRun`, and `VirtualRun` (plus legacy `type === 'Run'`), so trail runs or virtual runs don't create phantom gaps in the streak.
 - **Pagination** — fetches up to 50 pages × 200 activities (10,000 total) to ensure the full history is covered; stops naturally when Strava returns a partial page.
 - **Streak validation** — anchors on the **most recent** numbered run in the streak and computes expected numbers backwards. This ensures the known-good current run drives the sequence, not an older one.
-- **Multiple runs per day** — exactly one run is selected per streak day via `pickStreakRun`. A day is valid as long as at least one run has the correct streak number in its title. Selection priority: exact expected-number match → any numbered title → earliest by time. A two-pass approach in `computeStreak` handles this: pass 1 finds the anchor, pass 2 re-picks each day with the now-known expected number.
+- **Multiple runs per day** — exactly one run is selected per streak day via `pickStreakRun`. A day is valid as long as at least one run has the correct streak number in its title. Selection priority: exact expected-number match → any numbered title → earliest by time.
+- **Multi-day runs** — a run covers every local calendar day from its start through `start + elapsed_time` (`getRunLocalDates`), so an overnight ultra crossing midnight fills two (or more) streak days. Consecutive streak days picked as the same run are merged into a single entry spanning those days (e.g. Western States covering days 326 and 327). The title is valid when its **last** number equals the entry's last covered day number — the convention is to title such runs `…326/327`, which parses to 327 so the next day continues at 328. The run counts once in totals and shows one table row with a date range, a `🌙 N days` badge, and an expected label like `326/327`.
 
 ## Data Structures
 
 ```js
 RunActivity:   { id, name, start_date, start_date_local, sport_type, workout_type, distance, elapsed_time }
-ProcessedRun:  { id, name, localDate, distance, elapsed_time, isRace, parsedNumber, expectedNumber, status }
+ProcessedRun:  { id, name, localDate, endDate, dayCount, distance, elapsed_time, isRace, parsedNumber, expectedNumber, expectedLabel, status }
 StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistance, totalTime }
 // status: 'ok' | 'error' | 'no-number'
 // isRace: workout_type === 1
@@ -96,13 +97,14 @@ StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistanc
 ## Key Functions
 
 - `getRunLocalDate(run)` — returns `YYYY-MM-DD` from `start_date_local` (preferred) or `start_date`
+- `getRunLocalDates(run)` — returns all `YYYY-MM-DD` days the run covers, from start through `start + elapsed_time` (an overnight run returns two or more days)
 - `formatDate(dateStr)` — formats `YYYY-MM-DD` as human-readable e.g. `Sat, 28 Feb`
 - `formatDistance(meters)` — converts metres to `12.3 km`
 - `formatDuration(seconds)` — formats as `4h 32m` or `45m`
 - `parseLastNumber(title)` — regex `/(\d+)/g`, returns last match as number or null
 - `pickStreakRun(runsOnDay, expectedNumber)` — selects the single streak run from a day with multiple activities
-- `computeStreak(runs)` — groups by local date, walks backward to find streak, two-pass picks one run per day, validates sequence, computes total distance and time
-- `validateStreakNumbers(streakRuns)` — sorts ascending, anchors on most recent numbered run, computes expected offsets, flags mismatches
+- `computeStreak(runs)` — groups by covered local dates, walks backward to find streak, picks one run per day, merges consecutive days covered by the same run into one entry, validates sequence, computes total distance and time over unique runs
+- `validateStreakEntries(entries)` — validates merged entries: title's last number must equal the entry's last covered day number; builds `expectedLabel` spans like `326/327`
 - `fetchAllRuns(accessToken, onRun)` — paginates Strava API, filters to run sport types, calls `onRun(name)` per run for loading UI feedback
 - `refreshAccessToken()` — refreshes via the token proxy; returns `'ok' | 'rejected' | 'error'` (rejected = grant retired → session cleared; error = transient → tokens kept)
 - `ensureValidToken()` — refreshes token if within 60s of expiry, returns token string or null
