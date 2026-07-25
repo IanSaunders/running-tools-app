@@ -584,11 +584,18 @@
     }
 
     // Build the corrected title by replacing the last number, or appending if none
-    function buildFixedName(name, expectedNumber) {
+    // Replace the streak number in a title with the expected label. When the
+    // title has several numbers, replace the one the validator judged closest
+    // to the expected number (targetNumber), not blindly the last one.
+    function buildFixedName(name, expectedLabel, targetNumber = null) {
       const matches = [...name.matchAll(/\d+/g)];
-      if (matches.length === 0) return `${name} ${expectedNumber}`;
-      const last = matches[matches.length - 1];
-      return name.slice(0, last.index) + expectedNumber + name.slice(last.index + last[0].length);
+      if (matches.length === 0) return `${name} ${expectedLabel}`;
+      let target = matches[matches.length - 1];
+      if (targetNumber !== null) {
+        const ofTarget = matches.filter(m => parseInt(m[0], 10) === targetNumber);
+        if (ofTarget.length > 0) target = ofTarget[ofTarget.length - 1];
+      }
+      return name.slice(0, target.index) + expectedLabel + name.slice(target.index + target[0].length);
     }
 
     async function updateActivityName(activityId, newName) {
@@ -706,11 +713,21 @@
 
     // ─── Data processing ──────────────────────────────────────────────────────
 
-    function parseLastNumber(title) {
-      if (!title) return null;
+    // All numbers in a title. Titles often contain more than one (e.g.
+    // "322 & 20mins sauna") — only one of them needs to match the streak.
+    function parseNumbers(title) {
+      if (!title) return [];
       const matches = title.match(/(\d+)/g);
-      if (!matches || matches.length === 0) return null;
-      return parseInt(matches[matches.length - 1], 10);
+      return matches ? matches.map(n => parseInt(n, 10)) : [];
+    }
+
+    // The title number nearest to the expected number, or null if none.
+    function closestNumber(title, expectedNumber) {
+      const numbers = parseNumbers(title);
+      if (numbers.length === 0) return null;
+      return numbers.reduce((best, n) =>
+        Math.abs(n - expectedNumber) < Math.abs(best - expectedNumber) ? n : best
+      );
     }
 
     function groupRunsByDate(runs) {
@@ -725,7 +742,9 @@
     }
 
     // On days with multiple runs, pick the one most likely to be the streak run.
-    // Priority: exact expected number match → any numbered title → earliest by time.
+    // Priority: any title number matching the expected number → numbered title
+    // with the number closest to expected (so "340" beats "Peak bagging pt 2"
+    // when the sequence is out of sync) → any numbered title → earliest by time.
     function pickStreakRun(runsOnDay, expectedNumber = null) {
       if (runsOnDay.length === 1) return runsOnDay[0];
 
@@ -734,36 +753,48 @@
       );
 
       if (expectedNumber !== null) {
-        const exact = sorted.find(r => parseLastNumber(r.name) === expectedNumber);
+        const exact = sorted.find(r => parseNumbers(r.name).includes(expectedNumber));
         if (exact) return exact;
       }
 
-      const withNumber = sorted.filter(r => parseLastNumber(r.name) !== null);
-      if (withNumber.length >= 1) return withNumber[0];
+      const withNumber = sorted.filter(r => parseNumbers(r.name).length > 0);
+      if (withNumber.length === 0) return sorted[0];
+      if (expectedNumber === null) return withNumber[0];
 
-      return sorted[0];
+      // No exact match: closest number to expected wins; ties go to the earliest run
+      let best = withNumber[0];
+      let bestDist = Math.abs(closestNumber(best.name, expectedNumber) - expectedNumber);
+      for (const run of withNumber.slice(1)) {
+        const dist = Math.abs(closestNumber(run.name, expectedNumber) - expectedNumber);
+        if (dist < bestDist) { best = run; bestDist = dist; }
+      }
+      return best;
     }
 
     // Entries are ascending; each covers one run over one or more consecutive
-    // streak days (firstNumber..lastNumber). A multi-day run's title must end
-    // with the number of its *last* covered day (e.g. "326/327" parses to 327)
-    // so the next day's run continues the sequence correctly.
+    // streak days (firstNumber..lastNumber). A title is valid when *any* of its
+    // numbers equals the entry's last covered day number — "322 & 20mins sauna"
+    // matches day 322, and a multi-day "326/327" matches its last day 327 so
+    // the next day's run continues the sequence correctly.
     function validateStreakEntries(entries) {
       return entries.map(entry => {
         const { run, firstNumber, lastNumber, firstDate, lastDate } = entry;
-        const parsedNumber = parseLastNumber(run.name);
+        const numbers = parseNumbers(run.name);
         const expectedNumber = lastNumber;
         const expectedLabel = firstNumber === lastNumber
           ? String(lastNumber)
           : Array.from({ length: lastNumber - firstNumber + 1 }, (_, i) => firstNumber + i).join('/');
-        let status = 'no-number';
+        let status, parsedNumber;
 
-        if (parsedNumber === null) {
+        if (numbers.length === 0) {
           status = 'no-number';
-        } else if (parsedNumber === expectedNumber) {
+          parsedNumber = null;
+        } else if (numbers.includes(expectedNumber)) {
           status = 'ok';
+          parsedNumber = expectedNumber;
         } else {
           status = 'error';
+          parsedNumber = closestNumber(run.name, expectedNumber);
         }
 
         return {
@@ -1070,7 +1101,7 @@
       // Build table rows (descending by date)
       const tableRows = [...streakRuns].reverse().map(run => {
         const canFix = (run.status === 'error' || run.status === 'no-number') && run.expectedNumber !== null;
-        const fixedName = canFix ? buildFixedName(run.name, run.expectedLabel) : '';
+        const fixedName = canFix ? buildFixedName(run.name, run.expectedLabel, run.parsedNumber) : '';
         const dateLabel = run.dayCount > 1
           ? `${formatDate(run.localDate)} – ${formatDate(run.endDate)}`
           : formatDate(run.localDate);
