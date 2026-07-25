@@ -81,8 +81,9 @@ rather than a dead-end:
 - **Run type filter** — includes `sport_type` values `Run`, `TrailRun`, and `VirtualRun` (plus legacy `type === 'Run'`), so trail runs or virtual runs don't create phantom gaps in the streak.
 - **Pagination** — fetches up to 50 pages × 200 activities (10,000 total) to ensure the full history is covered; stops naturally when Strava returns a partial page.
 - **Streak validation** — anchors on the **most recent** numbered run in the streak and computes expected numbers backwards. This ensures the known-good current run drives the sequence, not an older one.
-- **Multiple runs per day** — exactly one run is selected per streak day via `pickStreakRun`. A day is valid as long as at least one run has the correct streak number in its title. Selection priority: exact expected-number match → any numbered title → earliest by time.
-- **Multi-day runs** — a run covers every local calendar day from its start through `start + elapsed_time` (`getRunLocalDates`), so an overnight ultra crossing midnight fills two (or more) streak days. Consecutive streak days picked as the same run are merged into a single entry spanning those days (e.g. Western States covering days 326 and 327). The title is valid when its **last** number equals the entry's last covered day number — the convention is to title such runs `…326/327`, which parses to 327 so the next day continues at 328. The run counts once in totals and shows one table row with a date range, a `🌙 N days` badge, and an expected label like `326/327`.
+- **Multiple numbers per title** — titles often contain extra numbers (`"322 & 20mins sauna"`, `"16x100m - 350"`). A title is valid when **any** of its numbers equals the expected streak number (`parseNumbers` + inclusion check). When no number matches, the one closest to the expected number is treated as the intended streak number for display and for the Fix suggestion (`closestNumber`), so a fix never clobbers an unrelated number like the `20` in `"322 & 20mins sauna"`.
+- **Multiple runs per day** — exactly one run is selected per streak day via `pickStreakRun`. Selection priority: any title number matching the expected number → numbered title whose closest number is nearest to expected (so when the sequence is out of sync, `"340"` beats `"Peak bagging pt 2"`) → any numbered title → earliest by time.
+- **Multi-day runs** — a run covers every local calendar day from its start through `start + elapsed_time` (`getRunLocalDates`), so an overnight ultra crossing midnight fills two (or more) streak days. Consecutive streak days picked as the same run are merged into a single entry spanning those days (e.g. Western States covering days 326 and 327). The title is valid when any of its numbers equals the entry's **last** covered day number — the convention is to title such runs `…326/327`, which contains 327 so the next day continues at 328. The run counts once in totals and shows one table row with a date range, a `🌙 N days` badge, and an expected label like `326/327`.
 
 ## Data Structures
 
@@ -101,10 +102,11 @@ StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistanc
 - `formatDate(dateStr)` — formats `YYYY-MM-DD` as human-readable e.g. `Sat, 28 Feb`
 - `formatDistance(meters)` — converts metres to `12.3 km`
 - `formatDuration(seconds)` — formats as `4h 32m` or `45m`
-- `parseLastNumber(title)` — regex `/(\d+)/g`, returns last match as number or null
-- `pickStreakRun(runsOnDay, expectedNumber)` — selects the single streak run from a day with multiple activities
+- `parseNumbers(title)` — regex `/(\d+)/g`, returns all numbers in the title (empty array if none)
+- `closestNumber(title, expectedNumber)` — the title number nearest to the expected number, or null
+- `pickStreakRun(runsOnDay, expectedNumber)` — selects the single streak run from a day with multiple activities (exact number match → closest number → any numbered → earliest)
 - `computeStreak(runs)` — groups by covered local dates, walks backward to find streak, picks one run per day, merges consecutive days covered by the same run into one entry, validates sequence, computes total distance and time over unique runs
-- `validateStreakEntries(entries)` — validates merged entries: title's last number must equal the entry's last covered day number; builds `expectedLabel` spans like `326/327`
+- `validateStreakEntries(entries)` — validates merged entries: any title number must equal the entry's last covered day number; builds `expectedLabel` spans like `326/327`
 - `fetchAllRuns(accessToken, onRun)` — paginates Strava API, filters to run sport types, calls `onRun(name)` per run for loading UI feedback
 - `refreshAccessToken()` — refreshes via the token proxy; returns `'ok' | 'rejected' | 'error'` (rejected = grant retired → session cleared; error = transient → tokens kept)
 - `ensureValidToken()` — refreshes token if within 60s of expiry, returns token string or null
