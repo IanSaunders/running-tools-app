@@ -24,9 +24,13 @@ src/
 │   ├── app.js            ← All logic; state persisted to localStorage
 │   ├── styles.css        ← Light theme + scoped Monokai dark theme
 │   └── about.html        ← About / iOS download page
-└── crew-tracker/
-    ├── index.html        ← Western States 100 crew tracker (mobile-first, 4 tabs)
-    └── CLAUDE.md         ← Course model, projection engine & Google Sheet wiring
+├── crew-tracker/
+│   ├── index.html        ← Western States 100 crew tracker (mobile-first, 4 tabs)
+│   └── CLAUDE.md         ← Course model, projection engine & Google Sheet wiring
+└── prince-of-mountain-view/
+    ├── index.html        ← Canvas game page
+    ├── js/               ← audio.js (synth), levels.js (levels), game.js (engine)
+    └── CLAUDE.md         ← Engine, level contract & the two custom physics modes
 ```
 
 ## Running Locally
@@ -56,6 +60,9 @@ Zoom-out interactive experience (powers-of-ten style) from a GPS watch face (46 
 
 ### `src/crew-tracker/` — Western States 100 Crew Tracker
 Mobile-first race-day tool for crew, hardcoded to a specific Google Sheet ("Crew - app" tab) as its data store. The sheet's ETA column is the runner's pace plan and drives the live finish projection; logging an aid-station split carries the delta forward to every downstream stop. Shows next-crew-stop "Have ready"/"Goal" info, a manual position stepper for when the tracker is quiet, and required-pace tables for any goal time. Reads live via the public gviz CSV endpoint; writes `Adjust +/- min` back through a hardcoded Apps Script web-app endpoint (`SHEET_WRITE_URL`). See `crew-tracker/CLAUDE.md`.
+
+### `src/prince-of-mountain-view/` — Prince of Mountain View
+A Prince of Persia parody platformer set in Silicon Valley, and the one tool here that is not a running tool. Pure HTML5 canvas + Web Audio: every sprite is drawn with canvas paths and every note is synthesized at runtime, so there are no image or audio assets. Five campaign levels (Black Mountain, Shoreline Sprint, Rush Hour, Mavericks, The Dragon's Hoard), two endless procedural modes, and five playable runners. Two levels replace the normal platformer physics — Mavericks rides a live sine-wave swell and swaps gravity for buoyancy underwater, and The Dragon's Hoard is driven by a stealth noise meter. Deliberately keeps its own dark arcade styling rather than the site palette. See `prince-of-mountain-view/CLAUDE.md`.
 
 ## Style Conventions
 
