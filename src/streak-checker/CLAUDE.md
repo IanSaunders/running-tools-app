@@ -79,16 +79,18 @@ rather than a dead-end:
 - **Date source** — uses `start_date_local` (Strava's local-time field) for all date grouping and display, falling back to `start_date` + browser timezone conversion if absent. This avoids runs near midnight being bucketed onto the wrong calendar day.
 - **`subtractOneDay`** — uses `new Date(y, m-1, d)` local constructor, not string arithmetic, to handle month boundaries correctly.
 - **Run type filter** — includes `sport_type` values `Run`, `TrailRun`, and `VirtualRun` (plus legacy `type === 'Run'`), so trail runs or virtual runs don't create phantom gaps in the streak.
-- **Pagination** — `fetchLatestStreakRuns` fetches newest-first pages of 200 activities, groups runs by local date, and stops at the first confirmed gap before the latest streak. All activities (including non-runs) advance the UTC boundary. A missing day is confirmed only when the oldest fetched start is strictly earlier than that day's UTC midnight minus 14 hours, allowing for timezone changes and runs split across pages. An empty page confirms exhaustion; a short page does not. Invalid or out-of-order start timestamps fail safely. Reaching 50 pages without confirming the beginning raises an incomplete-check error, never a partial dashboard.
-- **Latest streak** — ends on the latest local run date, even if it is older than yesterday. No fixed lookback window is applied.
-- **Streak validation** — expected title numbers are 1-based positions from the beginning of the streak; the next number is the streak length plus one. Legacy anchor calculations remain in the code but do not affect these expected numbers.
-- **Multiple runs per day** — all candidates on streak days are retained during fetching; exactly one is selected per streak day via `pickStreakRun`. A day is valid as long as at least one run has the correct streak number in its title. Selection priority: exact expected-number match → any numbered title → earliest by time.
+- **Pagination** — `fetchLatestStreakRuns` fetches newest-first pages of 200 activities and groups runs by every covered local day using `getRunLocalDates`, matching `computeStreak`. After each whole page, it walks backward from the latest covered day and deduplicates results by activity id. Early stopping requires both passing the missing day's UTC midnight minus 14 hours and finding an earlier run whose UTC end and last covered local day precede that gap. Non-run pages alone cannot establish a gap. This assumes no still-older recording overlaps that separating run and bridges the gap; arbitrary overlapping recordings require full-history fetching. No fixed duration/lookback cap is used. An empty page confirms exhaustion; a short page does not. Invalid or out-of-order start timestamps and invalid durations fail safely. Reaching 50 pages without confirming the beginning raises an incomplete-check error, never a partial dashboard.
+- **Latest streak** — ends on the latest local day covered by a run, even if it is older than yesterday. No fixed lookback window is applied.
+- **Streak validation** — expected title numbers are 1-based positions from the beginning of the streak; the next number is the streak length plus one.
+- **Multiple numbers per title** — titles often contain extra numbers (`"322 & 20mins sauna"`, `"16x100m - 350"`). A title is valid when **any** of its numbers equals the expected streak number (`parseNumbers` + inclusion check). When no number matches, the one closest to the expected number is treated as the intended streak number for display and for the Fix suggestion (`closestNumber`), so a fix never clobbers an unrelated number like the `20` in `"322 & 20mins sauna"`.
+- **Multiple runs per day** — exactly one run is selected per streak day via `pickStreakRun`. Selection priority: any title number matching the expected number → numbered title whose closest number is nearest to expected (so when the sequence is out of sync, `"340"` beats `"Peak bagging pt 2"`) → any numbered title → earliest by time.
+- **Multi-day runs** — a run covers every local calendar day from its start through `start + elapsed_time` (`getRunLocalDates`), so an overnight ultra crossing midnight fills two (or more) streak days. Consecutive streak days picked as the same run are merged into a single entry spanning those days (e.g. Western States covering days 326 and 327). The title is valid when any of its numbers equals the entry's **last** covered day number — the convention is to title such runs `…326/327`, which contains 327 so the next day continues at 328. The run counts once in totals and shows one table row with a date range, a `🌙 N days` badge, and an expected label like `326/327`.
 
 ## Data Structures
 
 ```js
 RunActivity:   { id, name, start_date, start_date_local, sport_type, workout_type, distance, elapsed_time }
-ProcessedRun:  { id, name, localDate, distance, elapsed_time, isRace, parsedNumber, expectedNumber, status }
+ProcessedRun:  { id, name, localDate, endDate, dayCount, distance, elapsed_time, isRace, parsedNumber, expectedNumber, expectedLabel, status }
 StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistance, totalTime }
 // status: 'ok' | 'error' | 'no-number'
 // isRace: workout_type === 1
@@ -97,13 +99,15 @@ StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistanc
 ## Key Functions
 
 - `getRunLocalDate(run)` — returns `YYYY-MM-DD` from `start_date_local` (preferred) or `start_date`
+- `getRunLocalDates(run)` — returns all `YYYY-MM-DD` days the run covers, from start through `start + elapsed_time` (an overnight run returns two or more days)
 - `formatDate(dateStr)` — formats `YYYY-MM-DD` as human-readable e.g. `Sat, 28 Feb`
 - `formatDistance(meters)` — converts metres to `12.3 km`
 - `formatDuration(seconds)` — formats as `4h 32m` or `45m`
-- `parseLastNumber(title)` — regex `/(\d+)/g`, returns last match as number or null
-- `pickStreakRun(runsOnDay, expectedNumber)` — selects the single streak run from a day with multiple activities
-- `computeStreak(runs)` — groups by local date, walks backward to find the latest streak, picks one run per day using 1-based expected numbers, validates sequence, computes total distance and time
-- `validateStreakNumbers(streakRuns)` — sorts ascending and flags mismatches against 1-based expected numbers
+- `parseNumbers(title)` — regex `/(\d+)/g`, returns all numbers in the title (empty array if none)
+- `closestNumber(title, expectedNumber)` — the title number nearest to the expected number, or null
+- `pickStreakRun(runsOnDay, expectedNumber)` — selects the single streak run from a day with multiple activities (exact number match → closest number → any numbered → earliest)
+- `computeStreak(runs)` — groups by covered local dates, walks backward to find streak, picks one run per day, merges consecutive days covered by the same run into one entry, validates sequence, computes total distance and time over unique runs
+- `validateStreakEntries(entries)` — validates merged entries: any title number must equal the entry's last covered day number; builds `expectedLabel` spans like `326/327`
 - `fetchLatestStreakRuns(accessToken, onRun)` — paginates Strava API only until the latest streak is confirmed, returns all run candidates on its days, calls `onRun(name)` for loading UI feedback; returns null after rendered API errors or throws if the result cannot be safely completed
 - `refreshAccessToken()` — refreshes via the token proxy; returns `'ok' | 'rejected' | 'error'` (rejected = grant retired → session cleared; error = transient → tokens kept)
 - `ensureValidToken()` — refreshes token if within 60s of expiry, returns token string or null
@@ -114,4 +118,4 @@ StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistanc
 
 ## Tests
 
-From the repository root, run `node --test tests/streak-checker.test.mjs`. These dependency-free tests execute the page script with mocked HTTP responses and compare the optimized result with `computeStreak` on full fixture histories, including request counts, timezone/page boundaries, and authentication/error handling.
+From the repository root, run `node --test tests/streak-checker.test.mjs`. These dependency-free tests execute the page script with mocked HTTP responses and compare the optimized result with `computeStreak` on full fixture histories, including request counts, timezone/page boundaries, overnight ultras, title matching, and authentication/error handling.

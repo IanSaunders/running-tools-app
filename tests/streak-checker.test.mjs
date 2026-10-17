@@ -114,7 +114,7 @@ test('all same-day candidates survive a page boundary and preserve selection and
   assert.ok(result.streakRuns.every(run => run.status === 'ok'));
 });
 
-test('trail, virtual, and legacy runs count; non-run pages can confirm the gap', async () => {
+test('trail, virtual, and legacy runs count; non-run pages do not confirm the gap', async () => {
   const pages = [
     [activity('2026-10-20', { sport_type: 'Ride' })],
     [activity('2026-10-19', { sport_type: 'Swim' })],
@@ -125,7 +125,7 @@ test('trail, virtual, and legacy runs count; non-run pages can confirm the gap',
     [activity('2020-01-01')],
   ];
   const runs = pages.flat().filter(a => a.sport_type !== 'Ride' && a.sport_type !== 'Swim');
-  const { result } = await check(pages, 4, runs);
+  const { result } = await check(pages, 5, runs);
   assert.equal(result.streakDays, 3);
 });
 
@@ -174,7 +174,81 @@ test('UTC-12 and UTC+14 runs fill consecutive local days across pages', async ()
     start_date: '2026-10-15T10:30:00Z', start_date_local: '2026-10-16T00:30:00Z',
   });
   const { result } = await check([[west], [east, activity('2026-10-12')]], 2);
-  assert.equal(result.streakDays, 2);
+  // The western run ends exactly at midnight, covering one additional day.
+  assert.equal(result.streakDays, 3);
+});
+
+test('overnight ultra bridges days across pages and counts only once in totals', async () => {
+  const latest = activity('2026-10-20', { name: 'Run 4 & 20min sauna' });
+  const ultra = activity('2026-10-17', {
+    name: 'Ultra 1/2/3', elapsed_time: 55 * 3600, distance: 160934,
+  });
+  const older = activity('2026-10-13');
+  const { result, runs } = await check([[latest], [ultra, older]], 2);
+  assert.equal(runs.length, 2);
+  assert.equal(result.streakDays, 4);
+  assert.equal(result.nextNumber, 5);
+  assert.equal(result.streakRuns.length, 2);
+  assert.equal(result.streakRuns[0].expectedLabel, '1/2/3');
+  assert.equal(result.streakRuns[0].dayCount, 3);
+  assert.equal(result.totalDistance, 165934);
+  assert.equal(result.totalTime, 55 * 3600 + 1800);
+  assert.ok(result.streakRuns.every(run => run.status === 'ok'));
+});
+
+test('non-run pages beyond an apparent gap cannot hide an earlier multi-day run', async () => {
+  const latest = activity('2026-10-17', { name: 'Run 5' });
+  const ride = activity('2026-10-14', { sport_type: 'Ride' });
+  const ultra = activity('2026-10-13', { name: 'Ultra 1/2/3/4', elapsed_time: 3 * 86400 });
+  const older = activity('2026-10-09');
+  const pages = [[latest, ride], [ultra], [older]];
+  const { result } = await check(pages, 3, [latest, ultra, older]);
+  assert.equal(result.streakDays, 5);
+});
+
+test('a latest run spanning several days has one row and one set of totals', async () => {
+  const ultra = activity('2026-10-17', { name: 'Ultra 1/2/3', elapsed_time: 48 * 3600 });
+  const { result, runs } = await check([[ultra, activity('2026-10-13')]], 1);
+  assert.equal(runs.length, 1);
+  assert.equal(result.streakDays, 3);
+  assert.equal(result.streakRuns.length, 1);
+  assert.equal(result.streakRuns[0].endDate, '2026-10-19');
+  assert.equal(result.totalDistance, ultra.distance);
+  assert.equal(result.totalTime, ultra.elapsed_time);
+});
+
+test('an older run must finish before the UTC gap boundary, not merely start before it', async () => {
+  const latest = activity('2026-10-17');
+  // Locally this run ends on the 15th, but in UTC it ends after the earliest
+  // possible start of the missing 16th. Another timezone can still fill it.
+  const older = activity('2026-10-15', {
+    start_date: '2026-10-15T09:00:00Z', start_date_local: '2026-10-15T08:00:00Z', elapsed_time: 7200,
+  });
+  const crossing = activity('2026-10-15', {
+    start_date: '2026-10-15T08:30:00Z', start_date_local: '2026-10-15T22:30:00Z', elapsed_time: 7200,
+  });
+  const { result } = await check([[latest, older], [crossing, activity('2026-10-11')]], 2);
+  assert.equal(result.streakDays, 3);
+});
+
+test('invalid run durations fail safely', async () => {
+  for (const elapsed_time of [-1, NaN, Infinity]) {
+    const app = createApp([[activity('2026-10-17', { elapsed_time })]]);
+    await assert.rejects(app.context.fetchLatestStreakRuns('initial-token'), /invalid duration/);
+  }
+});
+
+test('multiple title numbers and closest-number fixes survive early fetching', async () => {
+  const latest = activity('2026-10-17', { name: 'Run 2 & 20min sauna' });
+  const wrong = activity('2026-10-16', { name: 'Run 4 & 20min sauna' });
+  const other = activity('2026-10-16', {
+    name: 'Run 50', start_date: '2026-10-16T06:00:00Z', start_date_local: '2026-10-16T06:00:00Z',
+  });
+  const { result, context } = await check([[latest, wrong], [other, activity('2026-10-12')]], 2);
+  assert.equal(result.streakRuns[1].status, 'ok');
+  assert.equal(result.streakRuns[0].id, wrong.id);
+  assert.equal(result.streakRuns[0].parsedNumber, 4);
+  assert.equal(context.buildFixedName(wrong.name, '1', 4), 'Run 1 & 20min sauna');
 });
 
 for (const [label, dates] of [
