@@ -614,8 +614,10 @@
     async function fetchLatestStreakRuns(accessToken, onRun) {
       const byDate = new Map();
       const runBounds = [];
+      const seenActivities = new Set();
       let latestDate = null;
       let oldestStart = Infinity;
+      let canStopEarly = true;
 
       for (let page = 1; page <= MAX_PAGES; page++) {
         const activities = await stravaGet(
@@ -624,14 +626,21 @@
         );
         if (activities === null) return null; // error already rendered
 
-        // Validate every activity, including non-runs, before trusting this page's
-        // boundary. Local dates can move out of order when an athlete travels.
+        // Treat each page as an unordered batch: Strava may obscure start times,
+        // so the returned timestamps need not follow the API's activity order.
+        let pageOldestStart = Infinity;
+        let pageNewestStart = -Infinity;
         for (const activity of activities) {
+          // Pagination can repeat activities if new uploads shift page boundaries.
+          // Keep the first version seen and avoid counting repeats as disorder.
+          if (seenActivities.has(activity.id)) continue;
+          seenActivities.add(activity.id);
           const start = Date.parse(activity.start_date);
-          if (!Number.isFinite(start) || start > oldestStart) {
-            throw new Error('Could not safely check your latest streak because Strava returned invalid or out-of-order activity dates. Please try again.');
+          if (!Number.isFinite(start)) {
+            throw new Error('Could not check your latest streak because Strava returned an activity with an invalid start date. Please try again.');
           }
-          oldestStart = start;
+          pageOldestStart = Math.min(pageOldestStart, start);
+          pageNewestStart = Math.max(pageNewestStart, start);
 
           if (!RUN_SPORT_TYPES.has(activity.sport_type) && activity.type !== 'Run') continue;
           const date = getRunLocalDate(activity);
@@ -657,6 +666,12 @@
           if (onRun) onRun(activity.name);
         }
 
+        // If a later page contains unseen newer activities, the page boundary
+        // cannot prove a gap. Keep collecting until an empty page rather than
+        // rejecting valid activities or showing a potentially truncated streak.
+        if (pageNewestStart > oldestStart) canStopEarly = false;
+        oldestStart = Math.min(oldestStart, pageOldestStart);
+
         // Recheck after the entire page so a run on a later page can fill an
         // apparent gap, or supply another candidate on an existing streak day.
         const streakRuns = new Map();
@@ -681,7 +696,7 @@
         const hasEarlierCompletedRun = runBounds.some(run =>
           run.lastDate < missingDate && run.endTime < earliestMissingStart
         );
-        if (oldestStart < earliestMissingStart && hasEarlierCompletedRun) return [...streakRuns.values()];
+        if (canStopEarly && oldestStart < earliestMissingStart && hasEarlierCompletedRun) return [...streakRuns.values()];
       }
 
       throw new Error('Your latest streak could not be fully checked within 50 pages of activities. No streak total or title corrections are shown because the beginning of the streak is still unconfirmed.');
