@@ -79,9 +79,10 @@ rather than a dead-end:
 - **Date source** — uses `start_date_local` (Strava's local-time field) for all date grouping and display, falling back to `start_date` + browser timezone conversion if absent. This avoids runs near midnight being bucketed onto the wrong calendar day.
 - **`subtractOneDay`** — uses `new Date(y, m-1, d)` local constructor, not string arithmetic, to handle month boundaries correctly.
 - **Run type filter** — includes `sport_type` values `Run`, `TrailRun`, and `VirtualRun` (plus legacy `type === 'Run'`), so trail runs or virtual runs don't create phantom gaps in the streak.
-- **Pagination** — fetches up to 50 pages × 200 activities (10,000 total) to ensure the full history is covered; stops naturally when Strava returns a partial page.
-- **Streak validation** — anchors on the **most recent** numbered run in the streak and computes expected numbers backwards. This ensures the known-good current run drives the sequence, not an older one.
-- **Multiple runs per day** — exactly one run is selected per streak day via `pickStreakRun`. A day is valid as long as at least one run has the correct streak number in its title. Selection priority: exact expected-number match → any numbered title → earliest by time. A two-pass approach in `computeStreak` handles this: pass 1 finds the anchor, pass 2 re-picks each day with the now-known expected number.
+- **Pagination** — `fetchLatestStreakRuns` fetches newest-first pages of 200 activities, groups runs by local date, and stops at the first confirmed gap before the latest streak. All activities (including non-runs) advance the UTC boundary. A missing day is confirmed only when the oldest fetched start is strictly earlier than that day's UTC midnight minus 14 hours, allowing for timezone changes and runs split across pages. An empty page confirms exhaustion; a short page does not. Invalid or out-of-order start timestamps fail safely. Reaching 50 pages without confirming the beginning raises an incomplete-check error, never a partial dashboard.
+- **Latest streak** — ends on the latest local run date, even if it is older than yesterday. No fixed lookback window is applied.
+- **Streak validation** — expected title numbers are 1-based positions from the beginning of the streak; the next number is the streak length plus one. Legacy anchor calculations remain in the code but do not affect these expected numbers.
+- **Multiple runs per day** — all candidates on streak days are retained during fetching; exactly one is selected per streak day via `pickStreakRun`. A day is valid as long as at least one run has the correct streak number in its title. Selection priority: exact expected-number match → any numbered title → earliest by time.
 
 ## Data Structures
 
@@ -101,12 +102,16 @@ StreakResult:  { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistanc
 - `formatDuration(seconds)` — formats as `4h 32m` or `45m`
 - `parseLastNumber(title)` — regex `/(\d+)/g`, returns last match as number or null
 - `pickStreakRun(runsOnDay, expectedNumber)` — selects the single streak run from a day with multiple activities
-- `computeStreak(runs)` — groups by local date, walks backward to find streak, two-pass picks one run per day, validates sequence, computes total distance and time
-- `validateStreakNumbers(streakRuns)` — sorts ascending, anchors on most recent numbered run, computes expected offsets, flags mismatches
-- `fetchAllRuns(accessToken, onRun)` — paginates Strava API, filters to run sport types, calls `onRun(name)` per run for loading UI feedback
+- `computeStreak(runs)` — groups by local date, walks backward to find the latest streak, picks one run per day using 1-based expected numbers, validates sequence, computes total distance and time
+- `validateStreakNumbers(streakRuns)` — sorts ascending and flags mismatches against 1-based expected numbers
+- `fetchLatestStreakRuns(accessToken, onRun)` — paginates Strava API only until the latest streak is confirmed, returns all run candidates on its days, calls `onRun(name)` for loading UI feedback; returns null after rendered API errors or throws if the result cannot be safely completed
 - `refreshAccessToken()` — refreshes via the token proxy; returns `'ok' | 'rejected' | 'error'` (rejected = grant retired → session cleared; error = transient → tokens kept)
 - `ensureValidToken()` — refreshes token if within 60s of expiry, returns token string or null
 - `clearTokens()` — clears only the OAuth session (keeps client id) for one-tap reconnect; vs `clearAll()` for a full disconnect
 - `handleOAuthCallback()` — detects `?code=` or `?error=`, exchanges code, cleans URL
 - `stravaGet(path, token, retried)` — on 401 does one refresh + retry, else `renderReconnect()`; 429 → rate-limit message
 - `renderReconnect()` — reconnect screen shown when the session was retired by another device
+
+## Tests
+
+From the repository root, run `node --test tests/streak-checker.test.mjs`. These dependency-free tests execute the page script with mocked HTTP responses and compare the optimized result with `computeStreak` on full fixture histories, including request counts, timezone/page boundaries, and authentication/error handling.
