@@ -1,0 +1,20 @@
+.fun-mode { margin-bottom: 1.25rem; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); }
+.fun-mode > summary { padding: 1.1rem 1.4rem; cursor: pointer; font-weight: 600; }
+.fun-mode > summary span { font-weight: 400; color: var(--text-muted); font-size: .85rem; }
+.running-underground { background: #f7f4e7; color: #242622; padding: 1.5rem; }
+.running-underground .ru-eyebrow { font-size: .7rem; letter-spacing: .12em; }
+.running-underground h2 { font-family: Georgia, serif; font-size: clamp(1.8rem, 6vw, 2.8rem); font-style: italic; font-weight: 400; letter-spacing: -.04em; margin: .7rem 0; }
+.running-underground .ru-intro, .running-underground .ru-key { color: #626456; font-size: .75rem; line-height: 1.6; }
+.running-underground .ru-themes { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.2rem; }
+.running-underground .ru-themes button { font: inherit; font-size: .8rem; padding: .55rem .8rem; border: 1px solid #b7bbab; border-radius: 20px; color: #242622; background: transparent; cursor: pointer; min-height: 40px; }
+.running-underground .ru-themes button[aria-pressed="true"] { background: #242622; color: #f7f4e7; border-color: #242622; }
+.running-underground .ru-map { width: 100%; margin: .7rem 0; }
+.running-underground .ru-map svg { width: 100%; display: block; cursor: crosshair; }
+.running-underground .ru-map-label { font: italic 14px Georgia, serif; fill: #242622; stroke: #f7f4e7; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; pointer-events: none; }
+.running-underground .ru-summary { border-top: 1px solid #c4c5b9; padding-top: 1rem; margin-top: 1rem; font-size: .85rem; line-height: 1.7; min-height: 4rem; }
+.running-underground .ru-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; font-size: .8rem; }
+.running-underground .ru-timeline { width: 100%; min-height: 40px; accent-color: #8955aa; }
+.running-underground .ru-chooser { width: 100%; min-width: 0; margin-top: .5rem; font: inherit; font-size: 1rem; padding: .6rem; border: 1px solid #b7bbab; border-radius: 6px; color: #242622; background: #fffcf3; }
+.running-underground .ru-run { margin-top: 1rem; font-size: .8rem; line-height: 1.7; overflow-wrap: anywhere; }
+.running-underground .ru-run a { color: #364f8e; font-size: 1rem; }
+@media (max-width: 480px) { .running-underground { padding: 1rem .75rem; } .fun-mode > summary span { display: block; margin-top: .3rem; } .running-underground .ru-themes button { min-height: 44px; } .running-underground .ru-map-label { font-size: 13px; } }

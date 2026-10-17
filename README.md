@@ -35,12 +35,20 @@ The latest streak ends on your most recent run, even if that run was several day
 
 The early stop assumes no still-older recording overlaps that earlier completed run and extends across the gap. Arbitrarily overlapping long recordings cannot be ruled out without fetching the entire history; no fixed duration or lookback limit is imposed.
 
+## Fun Mode
+
+Open **Fun Mode** below the next-run number to explore **Your running underground**: a music-inspired map of overlapping running themes. Dawn patrol, Tiny escapes, Dirt worship, Longform, After hours, and In the groove have explicit rules shown when selected. Scrub through local streak days, highlight a theme and its crossovers, or inspect any run and open it on Strava.
+
+The map uses all distinct runs on the latest streak's days, including multiple runs per day; the numbering table continues to use its existing daily selection. Consequently, theme counts can exceed table-row counts. Overnight recordings appear once. Theme membership determines the broad layout; compressed distance and duration scales plus small deterministic offsets position runs within it. This is an exploratory theme map, not a geographic map or a trained clustering model. A new ultra does not rescale existing dots. Large streaks show a stable sample of at most 160 dots, including the selected run, while counts and the run chooser include every run.
+
+Fun Mode opens only on request, uses no additional API calls or dependencies, and stores no activity data. It does not modify streak calculation, title validation, or activity names. Runs without a usable local start timestamp are omitted from Fun Mode only. Refresh reloads the latest streak and rebuilds the map. Optional map failures leave the checker usable.
+
 ## Tests
 
 Run the dependency-free regression tests with Node.js:
 
 ```bash
-node --test tests/streak-checker.test.mjs
+node --test tests/*.test.mjs
 ```
 
 The tests mock Strava responses, compare results with the full-history calculation, and verify pagination, request counts, local dates, overnight runs, title matching, and failure handling without accessing your account.
@@ -49,7 +57,10 @@ The tests mock Strava responses, compare results with the full-history calculati
 
 | File | Purpose |
 |------|---------|
-| `src/streak-checker/index.html` | Entire streak application (HTML + CSS + JS) |
+| `src/streak-checker/index.html` | Core streak application (HTML + CSS + JS) |
+| `src/streak-checker/fun-mode.js` | Optional theme analysis, map, and interactions |
+| `src/streak-checker/fun-mode.css` | Scoped Fun Mode styles |
+| `tests/fun-mode.test.mjs` | Theme, timeline, deduplication, and map-size regression tests |
 | `src/streak-checker/config.js` | Generated at build time — holds only the public client id |
 | `netlify/functions/strava-token.mjs` | Token broker — holds the client secret server-side |
 | `tests/streak-checker.test.mjs` | Dependency-free streak fetching and calculation tests |
