@@ -272,16 +272,60 @@ test('missing local timestamps retain the existing browser-timezone fallback', a
   assert.equal(result.streakDays, 3);
 });
 
-test('ordering violations within or between pages prevent any dashboard', async () => {
-  for (const pages of [
-    [[activity('2026-10-17'), activity('2026-10-10'), activity('2026-10-11')]],
-    [[activity('2026-10-17')], [activity('2026-10-18')]],
-  ]) {
-    const app = createApp(pages);
-    await app.context.loadAndRenderDashboard();
-    assert.match(app.views.at(-1).value, /out-of-order/);
-    assert.ok(!app.views.some(view => view.name === 'renderDashboard'));
-  }
+test('shuffled activities within a page retain fast early stopping', async () => {
+  const runs = daysBack(3);
+  const older = activity('2026-10-10');
+  const pages = [[runs[1], older, runs[0], runs[2]]];
+  const { result } = await check(pages, 1);
+  assert.equal(result.streakDays, 3);
+});
+
+test('obscured timestamps mixed with normal times no longer cause an ordering error', async () => {
+  const hidden = activity('2026-10-17', {
+    start_date: '2026-10-17T00:00:01Z', start_date_local: '2026-10-17T00:00:01Z',
+  });
+  const app = createApp([[hidden, activity('2026-10-17'), activity('2026-10-13')]]);
+  await app.context.loadAndRenderDashboard();
+  assert.equal(app.calls.length, 1);
+  assert.equal(app.views.at(-1).name, 'renderDashboard');
+  assert.equal(app.views.at(-1).value.streakDays, 1);
+});
+
+test('out-of-order pages finish at exhaustion instead of failing or trusting an apparent gap', async () => {
+  const pages = [
+    [activity('2026-10-17')],
+    [activity('2026-10-18'), activity('2026-10-14')],
+    [activity('2026-10-16'), activity('2026-10-15')],
+    [],
+  ];
+  const { result } = await check(pages, 4);
+  assert.equal(result.streakDays, 5);
+});
+
+test('duplicate activities at page boundaries do not disable early stopping', async () => {
+  const runs = daysBack(3);
+  const older = activity('2026-10-10');
+  const pages = [[runs[0], runs[1]], [runs[0], runs[1], runs[2], older]];
+  const { result, runs: fetched } = await check(pages, 2, [...runs, older]);
+  assert.equal(fetched.length, 3);
+  assert.equal(result.totalDistance, 15000);
+});
+
+test('a duplicate-only page is not mistaken for exhaustion', async () => {
+  const runs = daysBack(3);
+  const older = activity('2026-10-10');
+  const pages = [[runs[0]], [runs[0]], [runs[1], runs[2], older]];
+  const { result } = await check(pages, 3, [...runs, older]);
+  assert.equal(result.streakDays, 3);
+});
+
+test('unordered-page fallback still respects the safety limit without showing partial results', async () => {
+  const runs = daysBack(49);
+  const app = createApp([[runs[1]], ...runs.map(run => [run])]);
+  await app.context.loadAndRenderDashboard();
+  assert.equal(app.calls.length, 50);
+  assert.match(app.views.at(-1).value, /could not be fully checked within 50 pages/);
+  assert.ok(!app.views.some(view => view.name === 'renderDashboard'));
 });
 
 test('invalid activity dates fail safely, including dates on non-runs', async () => {
