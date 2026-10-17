@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Strava Streak Tracker</title>
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="fun-mode.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -379,9 +380,12 @@
   <!-- Fallback if config.js is missing or fails to load -->
   <script>window.STRAVA_CONFIG = {};</script>
   <script src="config.js"></script>
+  <script src="fun-mode.js"></script>
 
   <script>
     'use strict';
+
+    let disposeFunMode = () => {};
 
     // ─── Constants ───────────────────────────────────────────────────────────
 
@@ -981,6 +985,7 @@
     }
 
     function renderSetup() {
+      disposeFunMode();
       const debugMode = new URLSearchParams(location.search).get('debug') === 'true';
       const hasInjectedCreds = !!STRAVA_CONFIG.clientId;
 
@@ -1088,6 +1093,7 @@
     }
 
     function renderLoading(msg = 'Loading…') {
+      disposeFunMode();
       document.getElementById('app').innerHTML = `
         ${header()}
         <div class="loading-wrap">
@@ -1155,7 +1161,8 @@
       return `<span class="badge badge-none">— No #</span>`;
     }
 
-    function renderDashboard(streakResult) {
+    function renderDashboard(streakResult, activities = []) {
+      disposeFunMode();
       const { streakDays, nextNumber, streakRuns, mostRecentRun, totalDistance, totalTime } = streakResult;
       const athleteName = localStorage.getItem(LS.ATHLETE_NAME) || '';
 
@@ -1249,6 +1256,11 @@
 
         ${nextRunCard}
 
+        <details class="fun-mode" id="fun-mode">
+          <summary>Fun Mode <span>Explore your running underground</span></summary>
+          <div id="fun-mode-content"></div>
+        </details>
+
         <div class="card">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
             <p class="section-title">Streak Run History</p>
@@ -1279,6 +1291,23 @@
           }
         </div>
       `;
+
+      // Lazy and isolated: optional visualization failures cannot hide results
+      // or trigger any additional Strava requests.
+      const funMode = document.getElementById('fun-mode');
+      let funModeMounted = false;
+      funMode.addEventListener('toggle', () => {
+        if (!funMode.open || funModeMounted) return;
+        const root = document.getElementById('fun-mode-content');
+        try {
+          const dates = streakRuns.flatMap(run => [run.localDate, run.endDate || run.localDate]).sort();
+          const model = globalThis.StreakFunMode.buildModel(activities, dates[0], dates[dates.length - 1]);
+          disposeFunMode = globalThis.StreakFunMode.mount(root, model);
+          funModeMounted = true;
+        } catch (error) {
+          root.textContent = 'Fun Mode could not load. Refresh to try again. Your streak results are still available below.';
+        }
+      });
 
       document.getElementById('refresh-btn').addEventListener('click', () => {
         loadAndRenderDashboard();
@@ -1390,7 +1419,7 @@
         if (runs === null) return; // error/reconnect already rendered
 
         const result = computeStreak(runs);
-        renderDashboard(result);
+        renderDashboard(result, runs);
       } catch (err) {
         renderError(err.message || 'An unexpected error occurred.');
       }
