@@ -29,3 +29,24 @@
 .fun-mode-dialog :focus-visible, .fun-mode-launch:focus-visible { outline: 3px solid #80d5ff; outline-offset: 3px; }
 @media (max-width: 850px) { .running-underground .ru-workspace { grid-template-columns: minmax(0, 1fr); } .running-underground .ru-panel { width: 100%; } .running-underground .ru-map { height: 490px; } }
 @media (max-width: 480px) { .running-underground { padding-top: 1.2rem; } .fun-mode-dialog .ru-toolbar > span { max-width: 110px; line-height: 1.6; font-size: .65rem; } }
+.running-underground .ru-lenses { display: flex; flex-wrap: wrap; gap: .35rem; padding-bottom: .7rem; border-bottom: 1px solid #303b58; }
+.running-underground .ru-lenses button { font: inherit; font-size: .9rem; padding: .6rem .9rem; min-height: 44px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #a9b5d4; cursor: pointer; }
+.running-underground .ru-lenses button[aria-pressed="true"] { color: #baf7ea; border-color: #527a78; background: #173735; }
+.running-underground .ru-lens-note { min-height: 2.7em; color: #abbcd6; font-size: .8rem; line-height: 1.5; margin: .75rem 0; }
+.running-underground .ru-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin: 1rem 0; }
+.running-underground .ru-metrics > div { padding: .6rem; background: #1a2440; border-radius: 8px; }
+.running-underground .ru-metrics dt { color: #9badce; font-size: .7rem; }
+.running-underground .ru-metrics dd { margin: .2rem 0 0; color: #e8f3ff; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.running-underground .ru-place { border-top: 1px solid #303b58; padding-top: .8rem; }
+
+@media (min-width: 851px) {
+  .running-underground { padding-top: 1rem; }
+  .running-underground .ru-header .ru-eyebrow { margin: 0; }
+  .running-underground .ru-intro { margin: .3rem 0; }
+  .running-underground .ru-map { height: max(310px, calc(100dvh - 390px)); }
+  .running-underground .ru-panel { padding: 1rem; }
+  .running-underground .ru-summary { line-height: 1.5; margin-top: .6rem; padding-bottom: .7rem; }
+  .running-underground .ru-label { margin-top: .8rem; }
+  .running-underground .ru-run { margin-top: .8rem; line-height: 1.5; }
+  .running-underground .ru-metrics { margin: .7rem 0; }
+}
