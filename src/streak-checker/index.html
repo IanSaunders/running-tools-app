@@ -1256,10 +1256,13 @@
 
         ${nextRunCard}
 
-        <details class="fun-mode" id="fun-mode">
-          <summary>Fun Mode <span>Explore your running underground</span></summary>
+        <button class="fun-mode-launch" id="fun-mode" type="button" aria-haspopup="dialog">
+          <span>Enter Fun Mode ↗</span><small>Explore your running universe</small>
+        </button>
+        <dialog class="fun-mode-dialog" id="fun-mode-dialog" aria-label="Your running universe">
+          <div class="ru-toolbar"><span>STREAK EXPLORER / FUN MODE</span><button id="fun-mode-exit" type="button" autofocus>← Back to streak</button></div>
           <div id="fun-mode-content"></div>
-        </details>
+        </dialog>
 
         <div class="card">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
@@ -1295,17 +1298,30 @@
       // Lazy and isolated: optional visualization failures cannot hide results
       // or trigger any additional Strava requests.
       const funMode = document.getElementById('fun-mode');
+      const funDialog = document.getElementById('fun-mode-dialog');
       let funModeMounted = false;
-      funMode.addEventListener('toggle', () => {
-        if (!funMode.open || funModeMounted) return;
+      let unmountFunMode = () => {};
+      let previousOverflow;
+      funDialog.addEventListener('close', () => {
+        if (previousOverflow !== undefined) document.body.style.overflow = previousOverflow;
+        previousOverflow = undefined;
+      });
+      document.getElementById('fun-mode-exit').addEventListener('click', () => funDialog.close());
+      disposeFunMode = () => { if (funDialog.open) funDialog.close(); unmountFunMode(); };
+      funMode.addEventListener('click', () => {
+        if (funDialog.open) return;
+        previousOverflow = document.body.style.overflow;
+        funDialog.showModal();
+        document.body.style.overflow = 'hidden';
+        if (funModeMounted) return;
         const root = document.getElementById('fun-mode-content');
         try {
           const dates = streakRuns.flatMap(run => [run.localDate, run.endDate || run.localDate]).sort();
           const model = globalThis.StreakFunMode.buildModel(activities, dates[0], dates[dates.length - 1]);
-          disposeFunMode = globalThis.StreakFunMode.mount(root, model);
+          unmountFunMode = globalThis.StreakFunMode.mount(root, model);
           funModeMounted = true;
         } catch (error) {
-          root.textContent = 'Fun Mode could not load. Refresh to try again. Your streak results are still available below.';
+          root.textContent = 'Fun Mode could not load. Go back to your streak and refresh to try again.';
         }
       });
 

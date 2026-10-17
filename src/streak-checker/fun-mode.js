@@ -3,12 +3,12 @@
   'use strict';
   const DAY = 86400000;
   const THEMES = [
-    { name: 'Dawn patrol', rule: 'Starts before 07:00', color: '#ad5028' },
-    { name: 'Tiny escapes', rule: '5 km or less', color: '#8955aa' },
-    { name: 'Dirt worship', rule: 'Recorded as a trail run', color: '#28735c' },
-    { name: 'Longform', rule: '20 km or more', color: '#376bb2' },
-    { name: 'After hours', rule: 'Starts from 20:00 to 04:59', color: '#ae4874' },
-    { name: 'In the groove', rule: 'Runs outside the other themes', color: '#6a7254' },
+    { name: 'Dawn patrol', rule: 'Starts before 07:00', color: '#ffc38b' },
+    { name: 'Tiny escapes', rule: '5 km or less', color: '#c7a1ff' },
+    { name: 'Dirt worship', rule: 'Recorded as a trail run', color: '#76e5c4' },
+    { name: 'Longform', rule: '20 km or more', color: '#84bdff' },
+    { name: 'After hours', rule: 'Starts from 20:00 to 04:59', color: '#f6a6d6' },
+    { name: 'In the groove', rule: 'Runs outside the other themes', color: '#d1de9c' },
   ];
   const stamp = date => Date.parse(`${date}T00:00:00Z`);
   const finite = n => typeof n === 'number' && Number.isFinite(n) && n >= 0;
@@ -95,30 +95,35 @@
       parent.append(el); return el;
     };
     root.replaceChildren(); root.className = 'running-underground';
-    make('p', 'ru-eyebrow', 'ON REPEAT / YOUR LATEST STREAK');
-    make('h2', '', 'Your running underground.');
-    make('p', 'ru-intro', 'Little obsessions. Recurring themes. The occasional epic.');
+    const header = make('header', 'ru-header');
+    make('p', 'ru-eyebrow', 'EVERY RUN LEAVES A STAR', header);
+    make('h2', '', 'Your running universe.', header);
+    make('p', 'ru-intro', 'Familiar orbits. Unexpected connections. A constellation that keeps growing.', header);
     if (!model.runs.length) { make('p', '', 'Your map starts with your first run.'); return () => {}; }
     let day = model.days, theme = -1, selectedId = model.runs[model.runs.length - 1].id;
-    const themes = make('div', 'ru-themes'); themes.setAttribute('aria-label', 'Explore running themes');
+    const workspace = make('div', 'ru-workspace');
+    const stage = make('section', 'ru-stage', undefined, workspace);
+    const panel = make('aside', 'ru-panel', undefined, workspace);
+    const themes = make('div', 'ru-themes', undefined, stage); themes.setAttribute('aria-label', 'Explore running themes');
     const buttons = [{ name: 'All runs', rule: 'Explore the whole streak' }, ...THEMES].map((t, i) => {
       const b = make('button', '', t.name, themes); b.type = 'button'; b.title = t.rule;
       b.onclick = () => { theme = i - 1; render(); }; return b;
     });
-    const map = make('div', 'ru-map');
+    const map = make('div', 'ru-map', undefined, stage);
     const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Running theme map. Select any run using the chooser below.'); map.append(svg);
-    const count = make('p', 'ru-key');
-    make('p', 'ru-key', 'Nearness reflects shared themes; lines join runs in a theme. Dot sizes suggest distance, capped so short runs stay visible.');
-    const summary = make('p', 'ru-summary'); summary.setAttribute('aria-live', 'polite');
-    const timelineLabel = make('label', 'ru-label', 'Scrub through the streak'); timelineLabel.htmlFor = 'ru-timeline';
+    const count = make('p', 'ru-key', undefined, stage);
+    make('p', 'ru-key', 'Glowing stars are your runs; faint specks are decorative. Connections follow shared themes, not geography. Star size suggests distance, capped.', stage);
+    make('p', 'ru-eyebrow', 'MISSION CONTROL', panel);
+    const summary = make('p', 'ru-summary', undefined, panel); summary.setAttribute('aria-live', 'polite');
+    const timelineLabel = make('label', 'ru-label', 'Travel through your streak', panel); timelineLabel.htmlFor = 'ru-timeline';
     const timelineValue = make('span', '', '', timelineLabel);
-    const timeline = make('input', 'ru-timeline'); timeline.id = 'ru-timeline'; timeline.type = 'range'; timeline.min = '1'; timeline.max = String(model.days); timeline.value = String(day); timeline.disabled = model.days === 1;
+    const timeline = make('input', 'ru-timeline', undefined, panel); timeline.id = 'ru-timeline'; timeline.type = 'range'; timeline.min = '1'; timeline.max = String(model.days); timeline.value = String(day); timeline.disabled = model.days === 1;
     timeline.oninput = () => { day = Number(timeline.value); render(); };
-    const chooserLabel = make('label', 'ru-label', 'Explore a run'); chooserLabel.htmlFor = 'ru-chooser';
-    const chooser = make('select', 'ru-chooser'); chooser.id = 'ru-chooser';
+    const chooserLabel = make('label', 'ru-label', 'Explore a run', panel); chooserLabel.htmlFor = 'ru-chooser';
+    const chooser = make('select', 'ru-chooser', undefined, panel); chooser.id = 'ru-chooser';
     chooser.onchange = () => { selectedId = chooser.value; draw(); describe(); };
-    const detail = make('div', 'ru-run'); detail.setAttribute('aria-live', 'polite');
+    const detail = make('div', 'ru-run', undefined, panel); detail.setAttribute('aria-live', 'polite');
     let current, shown, disposed = false;
     function describe() {
       detail.replaceChildren();
@@ -132,11 +137,11 @@
     }
     function draw() {
       if (disposed) return;
-      const width = map.clientWidth, height = width < 500 ? 490 : 370;
+      const width = map.clientWidth, height = map.clientHeight;
       if (!width) return;
       shown = mapRuns(current.runs, selectedId);
       const { centers, points } = layout(shown, width, height);
-      svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.style.height = `${height}px`;
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
       svg.replaceChildren();
       const mark = (tag, attrs, text) => {
         const el = doc.createElementNS(svg.namespaceURI, tag);
@@ -144,6 +149,11 @@
         if (text) el.textContent = text; svg.append(el); return el;
       };
       mark('title', {}, `Theme map: ${current.runs.length} runs through streak day ${day}`);
+      // Deterministic decorative stars: no animation, storage, or network work.
+      for (let i = 0; i < 100; i++) {
+        const seed = hash(`sky-${i}`);
+        mark('circle', { cx: (seed % 1000) / 1000 * width, cy: ((seed >>> 10) % 1000) / 1000 * height, r: i % 9 === 0 ? 1 : .5, fill: '#aabbd9', opacity: .18 + (i % 4) * .07, 'aria-hidden': true, 'pointer-events': 'none' });
+      }
       for (let t = 0; t < THEMES.length; t++) {
         const group = points.filter(p => p.run.tags.includes(t));
         for (let i = 1; i < group.length; i++) {
@@ -153,7 +163,10 @@
       }
       for (const p of points) {
         const active = theme === -1 || p.run.tags.includes(theme);
-        const node = mark('circle', { cx: p.x, cy: p.y, r: p.radius, fill: THEMES[p.run.tags[0]].color, opacity: active ? .85 : .14 });
+        const color = THEMES[p.run.tags[0]].color;
+        if (active) mark('circle', { cx: p.x, cy: p.y, r: p.radius * 2.2, fill: color, opacity: .07, 'pointer-events': 'none' });
+        const node = mark('circle', { cx: p.x, cy: p.y, r: p.radius, fill: color, opacity: active ? .9 : .14 });
+        if (active) mark('circle', { cx: p.x, cy: p.y, r: Math.max(1.5, p.radius * .25), fill: '#ffffff', opacity: .9, 'pointer-events': 'none' });
         const title = doc.createElementNS(svg.namespaceURI, 'title'); title.textContent = `${p.run.name} · ${kmLabel(p.run.km)}`; node.append(title);
         if (p.run.id === selectedId) mark('circle', { cx: p.x, cy: p.y, r: p.radius + 5, fill: 'none', stroke: 'currentColor', 'stroke-width': 2 });
       }

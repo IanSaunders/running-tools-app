@@ -1,20 +1,31 @@
-.fun-mode { margin-bottom: 1.25rem; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); }
-.fun-mode > summary { padding: 1.1rem 1.4rem; cursor: pointer; font-weight: 600; }
-.fun-mode > summary span { font-weight: 400; color: var(--text-muted); font-size: .85rem; }
-.running-underground { background: #f7f4e7; color: #242622; padding: 1.5rem; }
-.running-underground .ru-eyebrow { font-size: .7rem; letter-spacing: .12em; }
-.running-underground h2 { font-family: Georgia, serif; font-size: clamp(1.8rem, 6vw, 2.8rem); font-style: italic; font-weight: 400; letter-spacing: -.04em; margin: .7rem 0; }
-.running-underground .ru-intro, .running-underground .ru-key { color: #626456; font-size: .75rem; line-height: 1.6; }
-.running-underground .ru-themes { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.2rem; }
-.running-underground .ru-themes button { font: inherit; font-size: .8rem; padding: .55rem .8rem; border: 1px solid #b7bbab; border-radius: 20px; color: #242622; background: transparent; cursor: pointer; min-height: 40px; }
-.running-underground .ru-themes button[aria-pressed="true"] { background: #242622; color: #f7f4e7; border-color: #242622; }
-.running-underground .ru-map { width: 100%; margin: .7rem 0; }
-.running-underground .ru-map svg { width: 100%; display: block; cursor: crosshair; }
-.running-underground .ru-map-label { font: italic 14px Georgia, serif; fill: #242622; stroke: #f7f4e7; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; pointer-events: none; }
-.running-underground .ru-summary { border-top: 1px solid #c4c5b9; padding-top: 1rem; margin-top: 1rem; font-size: .85rem; line-height: 1.7; min-height: 4rem; }
-.running-underground .ru-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; font-size: .8rem; }
-.running-underground .ru-timeline { width: 100%; min-height: 40px; accent-color: #8955aa; }
-.running-underground .ru-chooser { width: 100%; min-width: 0; margin-top: .5rem; font: inherit; font-size: 1rem; padding: .6rem; border: 1px solid #b7bbab; border-radius: 6px; color: #242622; background: #fffcf3; }
-.running-underground .ru-run { margin-top: 1rem; font-size: .8rem; line-height: 1.7; overflow-wrap: anywhere; }
-.running-underground .ru-run a { color: #364f8e; font-size: 1rem; }
-@media (max-width: 480px) { .running-underground { padding: 1rem .75rem; } .fun-mode > summary span { display: block; margin-top: .3rem; } .running-underground .ru-themes button { min-height: 44px; } .running-underground .ru-map-label { font-size: 13px; } }
+.fun-mode-launch { width: 100%; margin-bottom: 1.25rem; padding: 1.2rem 1.4rem; display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap; align-items: center; border: 1px solid #454969; border-radius: 12px; color: #f2f4ff; background: linear-gradient(110deg, #14182e, #292044); cursor: pointer; font: inherit; text-align: left; }
+.fun-mode-launch span { font-weight: 600; }
+.fun-mode-launch small { color: #c5c6e6; font-size: .85rem; }
+.fun-mode-dialog { position: fixed; inset: 0; width: 100vw; max-width: none; height: 100vh; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; overflow: auto; overscroll-behavior: contain; background: #080c1b; color: #eef3ff; color-scheme: dark; }
+.fun-mode-dialog::backdrop { background: #080c1b; }
+.fun-mode-dialog .ru-toolbar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem clamp(1rem, 3vw, 3rem); background: #0c1022; border-bottom: 1px solid #262b47; }
+.fun-mode-dialog .ru-toolbar > span { font-size: .7rem; letter-spacing: .15em; color: #a5b0d1; }
+.fun-mode-dialog .ru-toolbar button { flex-shrink: 0; font: inherit; font-size: .85rem; color: #eff3ff; background: #1a203b; border: 1px solid #424b71; border-radius: 25px; padding: .65rem 1rem; min-height: 44px; cursor: pointer; }
+.running-underground { padding: 1.8rem clamp(1rem, 3vw, 3rem) 2rem; min-height: calc(100dvh - 78px); background: radial-gradient(ellipse at 25% 50%, #25205266, transparent 55%), radial-gradient(ellipse at 75% 10%, #133a4b44, transparent 50%), #080c1b; color: #eef3ff; }
+.running-underground .ru-eyebrow { font-size: .7rem; letter-spacing: .17em; color: #9eafdf; }
+.running-underground h2 { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 500; letter-spacing: -.05em; margin: .45rem 0; }
+.running-underground .ru-intro { font-size: .9rem; line-height: 1.6; color: #a9b5d4; }
+.running-underground .ru-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: clamp(1.5rem, 3vw, 3rem); margin-top: 1.4rem; }
+.running-underground .ru-stage { min-width: 0; }
+.running-underground .ru-themes { display: flex; flex-wrap: wrap; gap: .45rem; }
+.running-underground .ru-themes button { font: inherit; font-size: .8rem; padding: .55rem .85rem; border: 1px solid #394366; border-radius: 20px; color: #bdc9e8; background: #11182c; cursor: pointer; min-height: 44px; }
+.running-underground .ru-themes button[aria-pressed="true"] { background: #c6b8ff; color: #14152a; border-color: #c6b8ff; }
+.running-underground .ru-map { width: 100%; height: max(440px, calc(100dvh - 340px)); margin: .5rem 0; }
+.running-underground .ru-map svg { width: 100%; height: 100%; display: block; cursor: crosshair; }
+.running-underground .ru-map-label { font: 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: .04em; fill: #e0e9ff; stroke: #080c1b; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; pointer-events: none; }
+.running-underground .ru-key { color: #a0aecf; font-size: .72rem; line-height: 1.6; }
+.running-underground .ru-panel { align-self: start; background: #11182bd9; border: 1px solid #2e3755; border-radius: 18px; padding: 1.3rem; min-width: 0; }
+.running-underground .ru-summary { margin-top: .8rem; padding-bottom: 1rem; border-bottom: 1px solid #303b58; font-size: .85rem; line-height: 1.7; color: #d4ddf1; }
+.running-underground .ru-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-top: 1.2rem; font-size: .8rem; color: #c7d2ed; }
+.running-underground .ru-timeline { width: 100%; min-height: 40px; accent-color: #c6b8ff; }
+.running-underground .ru-chooser { width: 100%; min-width: 0; margin-top: .6rem; font: inherit; font-size: 1rem; padding: .65rem; border: 1px solid #414d70; border-radius: 8px; color: #eff2ff; background: #151e35; }
+.running-underground .ru-run { margin-top: 1.2rem; font-size: .8rem; line-height: 1.8; overflow-wrap: anywhere; color: #b4c1df; }
+.running-underground .ru-run a { color: #bcaeff; font-size: 1rem; text-underline-offset: 3px; }
+.fun-mode-dialog :focus-visible, .fun-mode-launch:focus-visible { outline: 3px solid #80d5ff; outline-offset: 3px; }
+@media (max-width: 850px) { .running-underground .ru-workspace { grid-template-columns: minmax(0, 1fr); } .running-underground .ru-panel { width: 100%; } .running-underground .ru-map { height: 490px; } }
+@media (max-width: 480px) { .running-underground { padding-top: 1.2rem; } .fun-mode-dialog .ru-toolbar > span { max-width: 110px; line-height: 1.6; font-size: .65rem; } }
