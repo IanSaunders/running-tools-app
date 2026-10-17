@@ -37,9 +37,11 @@ The early stop assumes no still-older recording overlaps that earlier completed 
 
 ## Fun Mode
 
-Open **Fun Mode** below the next-run number to explore **Your running underground**: a music-inspired map of overlapping running themes. Dawn patrol, Tiny escapes, Dirt worship, Longform, After hours, and In the groove have explicit rules shown when selected. Scrub through local streak days, highlight a theme and its crossovers, or inspect any run and open it on Strava.
+Click **Enter Fun Mode** below the next-run number to open **Your running universe**, a full-window star map: a music-inspired map of overlapping running themes. Dawn patrol, Tiny escapes, Dirt worship, Longform, After hours, and In the groove have explicit rules shown when selected. Scrub through local streak days, highlight a theme and its crossovers, or inspect any run and open it on Strava.
 
 The map uses all distinct runs on the latest streak's days, including multiple runs per day; the numbering table continues to use its existing daily selection. Consequently, theme counts can exceed table-row counts. Overnight recordings appear once. Theme membership determines the broad layout; compressed distance and duration scales plus small deterministic offsets position runs within it. This is an exploratory theme map, not a geographic map or a trained clustering model. A new ultra does not rescale existing dots. Large streaks show a stable sample of at most 160 dots, including the selected run, while counts and the run chooser include every run.
+
+Use **Back to streak** or Escape to close the map; keyboard focus and page scrolling return to the checker. The modal keeps background controls inactive and preserves the selected theme and timeline when reopened. Desktop controls sit beside the map; narrow screens stack them below it. The dark starfield uses static decorative specks and glowing run markers, with no continuous animation.
 
 Fun Mode opens only on request, uses no additional API calls or dependencies, and stores no activity data. It does not modify streak calculation, title validation, or activity names. Runs without a usable local start timestamp are omitted from Fun Mode only. Refresh reloads the latest streak and rebuilds the map. Optional map failures leave the checker usable.
 
