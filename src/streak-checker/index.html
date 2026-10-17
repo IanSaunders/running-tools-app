@@ -389,7 +389,7 @@
     const STRAVA_API       = 'https://www.strava.com/api/v3';
     const TOKEN_PROXY      = '/api/strava/token'; // Netlify Function; holds the client secret server-side
     const PAGE_SIZE        = 200;
-    const MAX_PAGES        = 50; // 50 × 200 = up to 10,000 activities
+    const MAX_PAGES        = 50; // Safety limit; never treat a truncated streak as complete.
     const RUN_SPORT_TYPES  = new Set(['Run', 'TrailRun', 'VirtualRun']);
 
     const LS = {
@@ -611,31 +611,80 @@
       return { ok: true };
     }
 
-    async function fetchAllRuns(accessToken, onRun) {
-      const runs = [];
-      let page = 1;
+    async function fetchLatestStreakRuns(accessToken, onRun) {
+      const byDate = new Map();
+      const runBounds = [];
+      let latestDate = null;
+      let oldestStart = Infinity;
 
-      while (page <= MAX_PAGES) {
+      for (let page = 1; page <= MAX_PAGES; page++) {
         const activities = await stravaGet(
           `/athlete/activities?per_page=${PAGE_SIZE}&page=${page}`,
-          getTokens().accessToken
+          getTokens().accessToken || accessToken
         );
         if (activities === null) return null; // error already rendered
-        if (activities.length === 0) break;
 
-        const pageRuns = activities.filter(
-          a => RUN_SPORT_TYPES.has(a.sport_type) || a.type === 'Run'
-        );
-        for (const run of pageRuns) {
-          if (onRun) onRun(run.name);
-          runs.push(run);
+        // Validate every activity, including non-runs, before trusting this page's
+        // boundary. Local dates can move out of order when an athlete travels.
+        for (const activity of activities) {
+          const start = Date.parse(activity.start_date);
+          if (!Number.isFinite(start) || start > oldestStart) {
+            throw new Error('Could not safely check your latest streak because Strava returned invalid or out-of-order activity dates. Please try again.');
+          }
+          oldestStart = start;
+
+          if (!RUN_SPORT_TYPES.has(activity.sport_type) && activity.type !== 'Run') continue;
+          const date = getRunLocalDate(activity);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T00:00:00Z`))) {
+            throw new Error('Could not safely check your latest streak because a run has an invalid local date. Please try again.');
+          }
+          const duration = activity.elapsed_time ?? 0;
+          if (!Number.isFinite(duration) || duration < 0) {
+            throw new Error('Could not safely check your latest streak because a run has an invalid duration. Please try again.');
+          }
+          // Match computeStreak: an overnight run fills every day it covers,
+          // including days after its start date on a newer page.
+          const coveredDates = getRunLocalDates(activity);
+          if (coveredDates.length === 0) {
+            throw new Error('Could not safely check your latest streak because a run has an invalid local date. Please try again.');
+          }
+          for (const coveredDate of coveredDates) {
+            if (!byDate.has(coveredDate)) byDate.set(coveredDate, []);
+            byDate.get(coveredDate).push(activity);
+            if (latestDate === null || coveredDate > latestDate) latestDate = coveredDate;
+          }
+          runBounds.push({ endTime: start + duration * 1000, lastDate: coveredDates[coveredDates.length - 1] });
+          if (onRun) onRun(activity.name);
         }
 
-        if (activities.length < PAGE_SIZE) break;
-        page++;
+        // Recheck after the entire page so a run on a later page can fill an
+        // apparent gap, or supply another candidate on an existing streak day.
+        const streakRuns = new Map();
+        let missingDate = latestDate;
+        while (byDate.has(missingDate)) {
+          for (const run of byDate.get(missingDate)) streakRuns.set(run.id, run);
+          missingDate = subtractOneDay(missingDate);
+        }
+
+        // Strava can return short non-final pages; only an empty page proves
+        // exhaustion. Without any runs yet, keep searching for the latest one.
+        if (activities.length === 0) return [...streakRuns.values()];
+        if (latestDate === null) continue;
+
+        // UTC+14 is the earliest UTC start of this missing local day. Passing
+        // that start boundary alone is insufficient: an older ultra could end
+        // inside the gap. Require an earlier run that FINISHED before the gap,
+        // both in UTC and by covered local dates. Non-run pages cannot prove it.
+        // This assumes no still-older recording overlaps that separating run
+        // and bridges the gap; arbitrary overlaps require full-history fetching.
+        const earliestMissingStart = Date.parse(`${missingDate}T00:00:00Z`) - 14 * 60 * 60 * 1000;
+        const hasEarlierCompletedRun = runBounds.some(run =>
+          run.lastDate < missingDate && run.endTime < earliestMissingStart
+        );
+        if (oldestStart < earliestMissingStart && hasEarlierCompletedRun) return [...streakRuns.values()];
       }
 
-      return runs;
+      throw new Error('Your latest streak could not be fully checked within 50 pages of activities. No streak total or title corrections are shown because the beginning of the streak is still unconfirmed.');
     }
 
     // ─── Date utilities ───────────────────────────────────────────────────────
@@ -945,7 +994,7 @@
                 <div>
                   <p style="font-size:0.875rem;font-weight:600;margin:0 0 0.2rem;">Read all activities</p>
                   <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">
-                    Used to fetch your full run history and calculate your current streak.
+                    Used to check your latest running streak, loading older activities only until its beginning is confirmed.
                   </p>
                 </div>
               </div>
@@ -1302,7 +1351,7 @@
     // ─── Orchestration ────────────────────────────────────────────────────────
 
     async function loadAndRenderDashboard() {
-      renderLoading('Fetching your runs…');
+      renderLoading('Checking your latest streak…');
 
       try {
         if (isTokenExpired()) {
@@ -1320,8 +1369,8 @@
           return;
         }
 
-        const runs = await fetchAllRuns(token, name => {
-          updateLoadingMsg(`Looking at run: ${name}`);
+        const runs = await fetchLatestStreakRuns(token, name => {
+          updateLoadingMsg(`Checking latest streak: ${name}`);
         });
         if (runs === null) return; // error/reconnect already rendered
 
