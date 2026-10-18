@@ -72,7 +72,7 @@ test('bubble area is proportional to distance, stable across timeline and sampli
     for (const p of positions.points) {
       assert.ok(p.x >= p.radius && p.x + p.radius <= width);
       assert.ok(p.y >= p.radius && p.y + p.radius <= 490);
-      assert.ok(p.radius > 0 && p.radius <= 28);
+      assert.ok(p.radius > 0 && p.radius <= 50);
     }
   }
 });
@@ -306,5 +306,67 @@ test('double-clicking a group label focuses its orbit after pointer capture reta
   ui.svg.onpointerup(ui.event(5, 5));
   ui.svg.ondblclick({ ...ui.event(5, 5), target: ui.svg });
   assert.ok(ui.scene().getAttribute('transform').endsWith('scale(6)'));
+  ui.dispose();
+});
+
+
+test('large streak samples always include the five longest runs and selected run', () => {
+  const result = model(Array.from({ length: 1000 }, (_, i) => activity(i + 1, '2026-10-01', { distance: i < 5 ? 160934.4 + i : 5000 })));
+  const selected = '999', sample = fun.mapRuns(result.runs, selected);
+  assert.equal(sample.length, 160);
+  assert.equal(new Set(sample.map(r => r.id)).size, 160);
+  for (const id of ['1', '2', '3', '4', '5', selected]) assert.ok(sample.some(r => r.id === id));
+  assert.deepEqual(fun.mapRuns([...result.runs].reverse(), selected), sample);
+  assert.equal(fun.longestRun(result.runs).id, '5');
+  assert.equal(fun.mapRuns(result.runs, selected, 1)[0].id, selected);
+});
+
+test('100-mile runs are visibly larger without inflating ordinary runs or changing area ratios', () => {
+  const result = model([activity(1, '2026-10-01', { distance: 8046.72 }), activity(2, '2026-10-02', { distance: 160934.4 })]);
+  for (const width of [270, 800]) {
+    const [short, ultra] = fun.layout(result.runs, width, 490, result.maxKm).points;
+    assert.ok(ultra.radius >= 35);
+    assert.ok(Math.abs(ultra.radius ** 2 / short.radius ** 2 - 20) < 1e-10);
+    assert.ok(ultra.radius / short.radius > 4.4);
+  }
+  assert.ok(fun.layout([result.runs[0]], 800, 490).points[0].radius < 12);
+  assert.equal(fun.milesLabel(160.9344), '100 mi');
+  assert.equal(fun.longestRun(model([activity(3, '2026-10-01', { distance: null }), activity(4, '2026-10-01', { distance: 0 })]).runs), undefined);
+});
+
+test('visible connections show at most four links, all attached to the selection', () => {
+  const result = model(Array.from({ length: 40 }, (_, i) => activity(i + 1, '2026-10-01', { total_elevation_gain: i % 2 ? 0 : 900, moving_time: 1600 })));
+  const edges = fun.connections(result.runs, result, 'gain', fun.groupsFor(result, 'gain'));
+  for (const run of result.runs) {
+    const visible = fun.visibleConnections(edges, result.runs, run.id);
+    assert.ok(visible.length > 0 && visible.length <= 4);
+    assert.ok(visible.every(e => e.a === run.id || e.b === run.id));
+  }
+  assert.deepEqual(fun.visibleConnections(edges, result.runs, ''), []);
+});
+
+test('connection toggle hides every edge without changing bubble sizes', () => {
+  const ui = mountFixture();
+  const radii = () => ui.all().filter(el => el.tag === 'circle').map(el => el.getAttribute('r'));
+  const sizes = radii();
+  assert.ok(ui.all().some(el => el.tag === 'line'));
+  ui.button('Connections').onclick();
+  assert.equal(ui.all().filter(el => el.tag === 'line').length, 0);
+  assert.equal(ui.button('Connections').getAttribute('aria-pressed'), 'false');
+  assert.deepEqual(radii(), sizes);
+  ui.button('Connections').onclick();
+  assert.ok(ui.all().some(el => el.tag === 'line'));
+  ui.dispose();
+});
+
+test('find-longest control exits filters, selects the longest run, and focuses it', () => {
+  const ui = mountFixture();
+  ui.button('Vert').onclick(); ui.flush(); ui.button('Mountain moons').onclick();
+  ui.button('Find longest run').onclick();
+  const chooser = ui.all().find(el => el.tag === 'select');
+  assert.equal(chooser.value, '1');
+  assert.equal(ui.button('All runs').getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.all().some(el => el.textContent === 'LONGEST'));
+  assert.notEqual(ui.scene().getAttribute('transform'), 'translate(0 0) scale(1)');
   ui.dispose();
 });

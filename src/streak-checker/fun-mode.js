@@ -69,13 +69,19 @@
     return { runs, members, crossovers };
   }
 
-  // Stable, bounded sampling keeps large streaks responsive; counts and chooser
-  // always use every run. Include the inspected run even when it is outside it.
+  const distanceOrder = (a, b) => (b.km || 0) - (a.km || 0) || a.start - b.start || a.id.localeCompare(b.id);
+  const longestRun = runs => [...runs].filter(r => r.km > 0).sort(distanceOrder)[0];
+  const milesLabel = km => `${(km / 1.609344).toLocaleString(undefined, { maximumFractionDigits: 1 })} mi`;
+  // Preserve distance outliers in the bounded sample, as well as the inspected
+  // run. Fill the remaining slots deterministically; never change the scale.
   function mapRuns(runs, selectedId, limit = 160) {
+    if (limit <= 0) return [];
     if (runs.length <= limit) return runs;
     const selected = runs.find(r => r.id === selectedId) || runs[runs.length - 1];
-    const chosen = [...runs].filter(r => r !== selected).sort((a, b) => hash(a.id) - hash(b.id) || a.id.localeCompare(b.id)).slice(0, limit - 1);
-    return [...chosen, selected].sort((a, b) => a.start - b.start || a.id.localeCompare(b.id));
+    const reserved = new Set([selected, ...[...runs].filter(r => r.km > 0).sort(distanceOrder).slice(0, 5)]);
+    const chosen = [...reserved].slice(0, limit);
+    const filler = [...runs].filter(r => !reserved.has(r)).sort((a, b) => hash(a.id) - hash(b.id) || a.id.localeCompare(b.id));
+    return [...chosen, ...filler.slice(0, limit - chosen.length)].sort((a, b) => a.start - b.start || a.id.localeCompare(b.id));
   }
 
   const positive = n => finite(n) && n > 0;
@@ -144,7 +150,7 @@
   function layout(runs, width, height, maxKm = runs.reduce((max, r) => Math.max(max, r.km || 0), 0), groups = groupsFor({}, 'themes')) {
     const columns = width < 500 ? 2 : 3, rows = Math.ceil(groups.length / columns);
     const centers = groups.map((_, i) => [(i % columns + .5) / columns, (Math.floor(i / columns) + .5) / rows]);
-    const maxRadius = Math.min(28, width * .075);
+    const maxRadius = Math.min(50, width * .13);
     const points = runs.map(run => {
       const memberships = groups.map((g, i) => g.matches(run) ? i : -1).filter(i => i >= 0);
       const center = memberships.reduce((s, tag) => [s[0] + centers[tag][0] / memberships.length, s[1] + centers[tag][1] / memberships.length], [0, 0]);
@@ -154,7 +160,7 @@
       const durationOffset = Math.max(-1, Math.min(1, Math.log1p(run.duration / 60) / Math.log(61) - 1));
       // No minimum or per-run cap: area remains directly proportional to km.
       // A hollow diamond represents zero/missing distance, outside this scale.
-      const radius = run.km > 0 && maxKm > 0 ? maxRadius * Math.sqrt(run.km / maxKm) : 0;
+      const radius = run.km > 0 && maxKm > 0 ? Math.min(4, maxRadius / Math.sqrt(maxKm)) * Math.sqrt(run.km) : 0;
       const margin = maxRadius + 7;
       return { run, memberships, x: Math.max(margin, Math.min(width - margin, center[0] * width + distanceOffset * spread + Math.cos(angle) * 25)), y: Math.max(margin, Math.min(height - margin, center[1] * height + durationOffset * spread + Math.sin(angle) * 32)), radius };
     });
@@ -219,6 +225,17 @@
     });
     return [...edges.values()];
   }
+  function visibleConnections(edges, runs, selectedId, limit = 4) {
+    const byId = new Map(runs.map(r => [r.id, r]));
+    const selected = byId.get(selectedId);
+    if (!selected) return [];
+    const neighbour = edge => byId.get(edge.a === selectedId ? edge.b : edge.a);
+    return edges.filter(e => (e.a === selectedId || e.b === selectedId) && neighbour(e))
+      .sort((a, b) => b.reasons.length - a.reasons.length
+        || Math.abs(neighbour(a).start - selected.start) - Math.abs(neighbour(b).start - selected.start)
+        || neighbour(a).id.localeCompare(neighbour(b).id)).slice(0, limit);
+  }
+
   function zoomAt(view, factor, x, y) {
     const k = Math.max(.5, Math.min(6, view.k * factor));
     return { k, x: x - (x - view.x) * k / view.k, y: y - (y - view.y) * k / view.k };
@@ -249,6 +266,8 @@
     make('p', 'ru-intro', 'Familiar orbits. Unexpected connections. A constellation that keeps growing.', header);
     if (!model.runs.length) { make('p', '', 'Your map starts with your first run.'); return () => {}; }
     let lens = 'themes', groups = groupsFor(model, lens);
+    let showConnections = true;
+    const longest = longestRun(model.runs);
     let day = model.days, theme = -1, selectedId = model.runs[model.runs.length - 1].id;
     const workspace = make('div', 'ru-workspace');
     const stage = make('section', 'ru-stage', undefined, workspace);
@@ -276,12 +295,25 @@
     control('+', () => zoom(1.25)).setAttribute('aria-label', 'Zoom in');
     control('Focus orbit', () => focusOrbit());
     control('Reset map', () => { pins.clear(); view = { x: 0, y: 0, k: 1 }; draw(true); });
+    const connectionToggle = control('Connections', () => { showConnections = !showConnections; draw(); });
+    connectionToggle.setAttribute('aria-pressed', 'true');
+    const findLongest = control(longest ? `Find longest · ${milesLabel(longest.km)}` : 'Find longest run', () => {
+      if (!longest) return;
+      day = Math.max(day, longest.day); timeline.value = String(day); theme = -1; selectedId = longest.id;
+      render(); view = fitView(points.filter(p => p.run.id === selectedId), map.clientWidth, map.clientHeight); applyView();
+    });
+    findLongest.setAttribute('aria-label', 'Find longest run'); findLongest.disabled = !longest;
     const map = make('div', 'ru-map', undefined, stage);
     const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('tabindex', '0'); svg.setAttribute('aria-describedby', 'ru-map-help'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Running constellation. Select any run using the chooser below.'); map.append(svg);
+    const sizeGuide = make('details', 'ru-size-guide', undefined, stage);
+    make('summary', '', 'How circle sizes compare', sizeGuide);
+    make('p', 'ru-key', 'Filled circle area represents distance. A 100-mile run has 20 times the area of a 5-mile run (about 4.5 times the width). Relative sizes below; zoom changes their size on the map.', sizeGuide);
+    const guide = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    guide.setAttribute('viewBox', '0 0 360 145'); guide.setAttribute('role', 'img'); guide.setAttribute('aria-label', 'Relative distance size guide'); sizeGuide.append(guide);
     const count = make('p', 'ru-key', undefined, stage);
     const help = make('p', 'ru-key', 'Drag a bubble to rearrange it. Drag space to pan. Scroll or pinch to zoom. Double-click an orbit to dive in. Keyboard: + / − to zoom, arrows to pan, 0 to reset. Touch: scroll the page outside the map.', stage); help.id = 'ru-map-help';
-    make('p', 'ru-key', 'Glowing stars are your runs; faint specks are decorative. Solid lines connect the current group; dashed lines bridge groups through shared vert, pace, heart rate, or launch site. Select a run to light up its connections. Bubble area = distance: 20 km is four times the area of 5 km. Hollow diamonds = zero / unavailable distance. Scale stays fixed while scrubbing.', stage);
+    make('p', 'ru-key', 'Only the selected run’s strongest connections are shown (up to four). Solid = same group; dashed = shared metrics or place. Toggle Connections to hide them. Filled circles are runs; faint specks are decorative. Bubble area = distance: 20 km is four times the area of 5 km. Hollow diamonds = zero / unavailable distance. Scale stays fixed while scrubbing.', stage);
     make('p', 'ru-eyebrow', 'MISSION CONTROL', panel);
     const summary = make('p', 'ru-summary', undefined, panel); summary.setAttribute('aria-live', 'polite');
     const timelineLabel = make('label', 'ru-label', 'Travel through your streak', panel); timelineLabel.htmlFor = 'ru-timeline';
@@ -321,7 +353,7 @@
       if (!run) { make('p', '', 'No runs in this orbit yet. Try a later day or another group.', detail); return; }
       const link = make('a', '', run.name, detail);
       link.href = `https://www.strava.com/activities/${run.id}`; link.target = '_blank'; link.rel = 'noopener noreferrer';
-      make('p', '', `${run.date} · ${run.time} · ${kmLabel(run.km)}${run.virtual ? ' · Virtual run' : ''}`, detail);
+      make('p', '', `${run.date} · ${run.time} · ${kmLabel(run.km)}${run.km === null ? '' : ' / ' + milesLabel(run.km)}${run.virtual ? ' · Virtual run' : ''}`, detail);
       make('p', 'ru-run-themes', run.tags.map(t => THEMES[t].name).join(' + '), detail);
       const metrics = make('dl', 'ru-metrics', undefined, detail);
       for (const [label, value] of [
@@ -374,34 +406,55 @@
       }
       scene = mark('g', { class: 'ru-scene' }); applyView();
       const byId = new Map(points.map(p => [p.run.id, p]));
-      const edges = connections(shown, model, lens, groups);
+      const edges = showConnections ? visibleConnections(connections(shown, model, lens, groups), shown, selectedId) : [];
+      connectionToggle.setAttribute('aria-pressed', String(showConnections));
+      const longestShown = longestRun(current.runs);
+      guide.replaceChildren();
+      if (model.maxKm > 0) {
+        const distances = model.maxKm > 20 ? [5, 20, model.maxKm] : model.maxKm > 5 ? [1, 5, model.maxKm] : [model.maxKm / 4, model.maxKm];
+        guide.setAttribute('aria-label', 'Relative circle areas for ' + distances.map(km => kmLabel(km) + ' / ' + milesLabel(km)).join(', '));
+        distances.forEach((km, i) => {
+          const x = (i + .5) * 360 / distances.length;
+          mark('circle', { cx: x, cy: 52, r: 42 * Math.sqrt(km / model.maxKm), fill: '#c6b8ff', stroke: '#eee6ff', 'stroke-width': 1 }, undefined, guide);
+          mark('text', { x, y: 116, 'text-anchor': 'middle', fill: '#eef3ff', 'font-size': 12 }, kmLabel(km), guide);
+          mark('text', { x, y: 134, 'text-anchor': 'middle', fill: '#acbdd8', 'font-size': 11 }, milesLabel(km), guide);
+        });
+      }
       const lineElements = edges.map(edge => {
         const a = byId.get(edge.a), b = byId.get(edge.b);
-        const selected = edge.a === selectedId || edge.b === selectedId;
-        const active = theme === -1 || a.memberships.includes(theme) || b.memberships.includes(theme);
         const line = mark('line', { stroke: edge.bridge ? '#c4dcff' : groups[a.memberships.find(i => b.memberships.includes(i))].color,
-          'stroke-width': selected ? 2 : 1.2, 'stroke-dasharray': edge.bridge ? '5 5' : 'none',
-          'vector-effect': 'non-scaling-stroke', opacity: selected ? .95 : active ? (edge.bridge ? .22 : .6) : .08,
+          'stroke-width': 1.5, 'stroke-dasharray': edge.bridge ? '5 5' : 'none',
+          'vector-effect': 'non-scaling-stroke', opacity: .8,
           class: edge.bridge ? 'ru-bridge' : 'ru-connection' }, undefined, scene);
         mark('title', {}, edge.reasons.join(' · '), line);
         return { line, a, b };
       });
-      const nodeElements = points.map(p => {
+      const nodeLayer = mark('g', { class: 'ru-nodes' }, undefined, scene);
+      const labelLayer = mark('g', { class: 'ru-orbit-labels' }, undefined, scene);
+      const longestLayer = mark('g', { class: 'ru-longest' }, undefined, scene);
+      // Draw the longest last so small bubbles cannot obscure its distance label.
+      const nodeElements = [...points].sort((a, b) => Number(a.run.id === longestShown?.id) - Number(b.run.id === longestShown?.id)).map(p => {
         const active = theme === -1 || p.memberships.includes(theme), color = groups[p.memberships[0]].color;
-        const node = mark('g', { class: 'ru-star', 'data-run-id': p.run.id }, undefined, scene);
+        const node = mark('g', { class: 'ru-star', 'data-run-id': p.run.id }, undefined, p.run.id === longestShown?.id ? longestLayer : nodeLayer);
         // Transparent hit area is separate from the honest distance-sized bubble.
         mark('circle', { r: Math.max(p.radius, 10), fill: 'transparent' }, undefined, node);
-        if (active) mark('circle', { r: p.radius * 1.7, fill: color, opacity: .06, 'pointer-events': 'none' }, undefined, node);
-        if (p.radius > 0) mark('circle', { r: p.radius, fill: color, opacity: active ? .85 : .14 }, undefined, node);
+        const isLongest = p.run.id === longestShown?.id;
+        if (p.radius > 0) mark('circle', { r: p.radius, fill: color, stroke: isLongest ? '#fff4be' : color, 'stroke-width': isLongest ? 2 : 1, 'vector-effect': 'non-scaling-stroke', opacity: active ? .9 : .2 }, undefined, node);
         else mark('path', { d: 'M 0 -4 l 4 4 -4 4 -4 -4 Z', fill: 'none', stroke: color, opacity: active ? .9 : .14 }, undefined, node);
-        if (active && p.radius > 0) mark('circle', { r: p.radius * .2, fill: '#fff', opacity: .9, 'pointer-events': 'none' }, undefined, node);
+        if (isLongest && p.radius > 0) {
+          const inside = p.radius >= 30;
+          const attrs = { 'text-anchor': 'middle', 'pointer-events': 'none', fill: inside ? '#12182b' : '#fff4be', 'font-size': 11, 'font-weight': 600 };
+          mark('text', { ...attrs, y: inside ? -9 : -p.radius - 32 }, 'LONGEST', node);
+          mark('text', { ...attrs, y: inside ? 6 : -p.radius - 18, 'font-size': 12 }, kmLabel(p.run.km), node);
+          mark('text', { ...attrs, y: inside ? 21 : -p.radius - 4 }, milesLabel(p.run.km), node);
+        }
         mark('title', {}, `${p.run.name} · ${kmLabel(p.run.km)} · drag to move`, node);
         if (p.run.id === selectedId) mark('circle', { r: p.radius + 5, fill: 'none', stroke: '#fff', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, undefined, node);
         return { node, p };
       });
       result.centers.forEach((c, i) => {
         if (!current.runs.some(groups[i].matches)) return;
-        mark('text', { x: c[0] * width, y: Math.min(height - 10, c[1] * height + 65), 'text-anchor': 'middle', class: 'ru-map-label', 'data-orbit': i, opacity: theme === -1 || theme === i ? 1 : .3 }, groups[i].name, scene);
+        mark('text', { x: c[0] * width, y: Math.min(height - 10, c[1] * height + 65), 'text-anchor': 'middle', class: 'ru-map-label', 'data-orbit': i, opacity: theme === -1 || theme === i ? 1 : .3 }, groups[i].name, labelLayer);
       });
       updatePositions = () => {
         for (const { node, p } of nodeElements) {
@@ -426,7 +479,7 @@
         frame = win.requestAnimationFrame(tick);
       } else { points.forEach(p => Object.assign(p, targets.get(p.run.id))); }
       updatePositions();
-      count.textContent = `${shown.length === current.runs.length ? `${shown.length} runs` : `${shown.length} of ${current.runs.length} dots; every run is in the chooser`} · ${edges.filter(e => e.bridge).length} bridges across groups · Ring = selected run`;
+      count.textContent = `${shown.length === current.runs.length ? `${shown.length} runs` : `${shown.length} of ${current.runs.length} dots; every run is in the chooser`} · ${edges.length} connections for selected run${longestShown ? ' · Longest: ' + kmLabel(longestShown.km) + ' / ' + milesLabel(longestShown.km) : ''} · Ring = selected run`;
     }
     function render(animate = false) {
       current = snapshot(model, day, lens === 'themes' ? theme : -1);
@@ -528,7 +581,7 @@
     render(); observer?.observe(map);
     return () => { disposed = true; stopAnimation(); pointers.clear(); observer?.disconnect(); };
   }
-  const api = { THEMES, LENSES, buildModel, snapshot, mapRuns, layout, spreadPoints, groupsFor, paceLabel, connections, zoomAt, worldPoint, fitView, mount };
+  const api = { THEMES, LENSES, buildModel, snapshot, mapRuns, longestRun, milesLabel, visibleConnections, layout, spreadPoints, groupsFor, paceLabel, connections, zoomAt, worldPoint, fitView, mount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else globalThis.StreakFunMode = api;
 })();
