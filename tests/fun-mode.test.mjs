@@ -152,3 +152,159 @@ test('many places keep a bounded set of orbits with all runs reachable, and zero
     assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
   }
 });
+
+
+test('metric views connect different groups through known shared metrics and places', () => {
+  const result = model([
+    activity(1, '2026-10-01', { total_elevation_gain: 0, moving_time: 1600, average_heartrate: 145, start_latlng: [37, -122] }),
+    activity(2, '2026-10-02', { total_elevation_gain: 800, moving_time: 1700, average_heartrate: 147, start_latlng: [37.01, -122] }),
+    activity(3, '2026-10-03', { total_elevation_gain: 10, moving_time: 2600, average_heartrate: 180 }),
+  ]);
+  const edges = fun.connections(result.runs, result, 'gain', fun.groupsFor(result, 'gain'));
+  assert.equal(edges.filter(e => !e.bridge).length, 1);
+  const bridge = edges.find(e => e.bridge && [e.a, e.b].includes('1') && [e.a, e.b].includes('2'));
+  assert.ok(bridge);
+  assert.equal(bridge.reasons.length, 3);
+  assert.ok(bridge.reasons.some(reason => reason.startsWith('Pace:')));
+  assert.ok(bridge.reasons.some(reason => reason.startsWith('Heart rate:')));
+  assert.ok(bridge.reasons.includes('Launch site 1'));
+  assert.equal(new Set(edges.map(e => [e.a, e.b].sort().join(':'))).size, edges.length);
+});
+
+test('missing metrics and different remote sites never invent a bridge', () => {
+  const result = model([activity(1, '2026-10-01', { total_elevation_gain: 0 }), activity(2, '2026-10-02', { total_elevation_gain: 900 })]);
+  assert.deepEqual(fun.connections(result.runs, result, 'gain', fun.groupsFor(result, 'gain')), []);
+  const far = model(Array.from({ length: 8 }, (_, i) => activity(i + 1, '2026-10-01', { start_latlng: [i * 10, 0], total_elevation_gain: i % 2 ? 0 : 900 })));
+  assert.equal(fun.connections(far.runs, far, 'gain', fun.groupsFor(far, 'gain')).filter(e => e.bridge).length, 0);
+});
+
+test('graph work stays bounded to displayed runs and never mutates source coordinates', () => {
+  const result = model(Array.from({ length: 1000 }, (_, i) => activity(i + 1, '2026-10-01', { total_elevation_gain: i % 2 ? 0 : 900, moving_time: 1600 })));
+  const before = JSON.stringify(result), shown = fun.mapRuns(result.runs, '999');
+  const edges = fun.connections(shown, result, 'gain', fun.groupsFor(result, 'gain'));
+  assert.ok(edges.length <= shown.length * 3);
+  assert.ok(edges.every(e => shown.some(r => r.id === e.a) && shown.some(r => r.id === e.b)));
+  assert.equal(JSON.stringify(result), before);
+});
+
+test('zoom keeps the world point beneath the pointer fixed and respects bounds', () => {
+  const view = { x: -25, y: 40, k: 1.5 }, point = { x: 230, y: 120 };
+  const before = fun.worldPoint(view, point.x, point.y);
+  for (const factor of [.001, .8, 1.25, 1000]) {
+    const zoomed = fun.zoomAt(view, factor, point.x, point.y);
+    assert.ok(zoomed.k >= .5 && zoomed.k <= 6);
+    const after = fun.worldPoint(zoomed, point.x, point.y);
+    assert.ok(Math.abs(before.x - after.x) < 1e-10 && Math.abs(before.y - after.y) < 1e-10);
+  }
+});
+
+test('orbit focus fits its bubbles on desktop and mobile, including empty and single groups', () => {
+  for (const width of [270, 736]) {
+    const points = [{ x: 50, y: 40, radius: 28 }, { x: 120, y: 100, radius: 10 }];
+    const view = fun.fitView(points, width, 400);
+    for (const p of points) {
+      assert.ok((p.x - p.radius) * view.k + view.x >= 0);
+      assert.ok((p.x + p.radius) * view.k + view.x <= width);
+      assert.ok((p.y - p.radius) * view.k + view.y >= 0);
+      assert.ok((p.y + p.radius) * view.k + view.y <= 400);
+    }
+    assert.deepEqual(fun.fitView([], width, 400), { x: 0, y: 0, k: 1 });
+    assert.ok(Number.isFinite(fun.fitView([points[0]], width, 400).k));
+  }
+});
+
+
+test('crowded bubbles spread apart without changing data or distance sizes', () => {
+  const input = Array.from({ length: 8 }, (_, i) => ({ run: { id: String(i) }, x: 100, y: 100, radius: 10 + i }));
+  const before = JSON.stringify(input), points = fun.spreadPoints(input, 300, 300);
+  assert.equal(JSON.stringify(input), before);
+  assert.deepEqual(points.map(p => p.radius), input.map(p => p.radius));
+  assert.deepEqual(fun.spreadPoints(input, 300, 300), points);
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    assert.ok(a.x >= a.radius && a.x + a.radius <= 300 && a.y >= a.radius && a.y + a.radius <= 300);
+    for (const b of points.slice(i + 1)) assert.ok(Math.hypot(a.x - b.x, a.y - b.y) >= (a.radius + b.radius) * .9);
+  }
+});
+
+// Small DOM fixture exercises the real mount handlers without browser dependencies.
+function mountFixture(reducedMotion = false) {
+  const frames = new Map(); let nextFrame = 0;
+  const doc = { defaultView: {
+    matchMedia: () => ({ matches: reducedMotion }),
+    requestAnimationFrame: fn => { frames.set(++nextFrame, fn); return nextFrame; },
+    cancelAnimationFrame: id => frames.delete(id),
+  } };
+  function element(tag) {
+    const attributes = new Map(), capture = new Set();
+    return { tag, ownerDocument: doc, children: [], clientWidth: 800, clientHeight: 400,
+      namespaceURI: 'http://www.w3.org/2000/svg', classList: { add() {}, remove() {} }, listeners: {},
+      append(child) { this.children.push(child); }, replaceChildren() { this.children = []; },
+      setAttribute(key, value) { attributes.set(key, String(value)); }, getAttribute(key) { return attributes.get(key) ?? null; },
+      focus() {}, addEventListener(name, fn) { this.listeners[name] = fn; },
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 400 }),
+      setPointerCapture(id) { capture.add(id); }, hasPointerCapture(id) { return capture.has(id); },
+      releasePointerCapture(id) { capture.delete(id); this.onlostpointercapture?.({ pointerId: id }); },
+    };
+  }
+  doc.createElement = element; doc.createElementNS = (_, tag) => element(tag);
+  const root = element('div');
+  const runs = model([activity(1, '2026-10-01', { total_elevation_gain: 0, moving_time: 1600 }), activity(2, '2026-10-02', { total_elevation_gain: 800, moving_time: 1600 })]);
+  const dispose = fun.mount(root, runs);
+  const all = (node = root) => [node, ...node.children.flatMap(all)];
+  const button = name => all().find(el => el.tag === 'button' && (el.textContent === name || el.getAttribute('aria-label') === name));
+  const svg = all().find(el => el.tag === 'svg');
+  const scene = () => all().find(el => el.getAttribute('class') === 'ru-scene');
+  const star = id => all().find(el => el.getAttribute('data-run-id') === id);
+  const position = id => star(id).getAttribute('transform').match(/[-\d.]+/g).map(Number);
+  const event = (x, y, id = 1) => ({ clientX: x, clientY: y, pointerId: id, button: 0, preventDefault() {} });
+  const flush = () => { for (const now of [0, 500]) { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(now)); } };
+  return { all, button, svg, scene, position, event, flush, frames, dispose };
+}
+
+test('mounted graph drags bubbles and attached lines, preserves pins, and resets them', () => {
+  const ui = mountFixture();
+  const [x, y] = ui.position('2');
+  ui.svg.onpointerdown(ui.event(x, y)); ui.svg.onpointermove(ui.event(x + 90, y + 30)); ui.svg.onpointerup(ui.event(x + 90, y + 30));
+  assert.deepEqual(ui.position('2'), [x + 90, y + 30]);
+  assert.ok(ui.all().some(el => el.tag === 'line' && (Number(el.getAttribute('x1')) === x + 90 || Number(el.getAttribute('x2')) === x + 90)));
+  ui.button('Vert').onclick(); ui.flush(); ui.button('Themes').onclick(); ui.flush();
+  assert.deepEqual(ui.position('2'), [x + 90, y + 30]);
+  ui.button('Reset map').onclick(); ui.flush();
+  assert.deepEqual(ui.position('2'), [x, y]);
+  ui.dispose();
+});
+
+test('mounted graph supports pan, pinch, wheel, cancellation and zoom-aware dragging', () => {
+  const ui = mountFixture();
+  ui.svg.onpointerdown(ui.event(10, 10)); ui.svg.onpointermove(ui.event(50, 30)); ui.svg.onpointerup(ui.event(50, 30));
+  assert.equal(ui.scene().getAttribute('transform'), 'translate(40 20) scale(1)');
+  ui.button('Reset map').onclick(); ui.flush();
+  ui.svg.onpointerdown(ui.event(10, 10, 1)); ui.svg.onpointerdown(ui.event(110, 10, 2));
+  ui.svg.onpointermove(ui.event(210, 10, 2));
+  assert.ok(ui.scene().getAttribute('transform').endsWith('scale(2)'));
+  ui.svg.onpointercancel(ui.event(10, 10, 1)); ui.svg.onpointercancel(ui.event(210, 10, 2));
+  ui.button('Reset map').onclick(); ui.flush();
+  ui.svg.listeners.wheel({ ...ui.event(0, 0), deltaY: -Math.log(2) / .008 });
+  assert.equal(ui.scene().getAttribute('transform'), 'translate(0 0) scale(2)');
+  const [x, y] = ui.position('2');
+  ui.svg.onpointerdown(ui.event(x * 2, y * 2)); ui.svg.onpointermove(ui.event(x * 2 + 80, y * 2 + 20)); ui.svg.onpointerup(ui.event(x * 2 + 80, y * 2 + 20));
+  assert.deepEqual(ui.position('2'), [x + 40, y + 10]);
+  ui.dispose();
+});
+
+test('view transitions respect reduced motion and cancel pending frames on disposal', () => {
+  const ui = mountFixture(); ui.button('Vert').onclick();
+  assert.equal(ui.frames.size, 1); ui.dispose(); assert.equal(ui.frames.size, 0);
+  const reduced = mountFixture(true); reduced.button('Vert').onclick();
+  assert.equal(reduced.frames.size, 0); reduced.dispose();
+});
+
+test('double-clicking a group label focuses its orbit after pointer capture retargets the event', () => {
+  const ui = mountFixture(); ui.button('Vert').onclick(); ui.flush();
+  ui.svg.onpointerdown({ ...ui.event(5, 5), target: { closest: () => ({ getAttribute: () => '0' }) } });
+  ui.svg.onpointerup(ui.event(5, 5));
+  ui.svg.ondblclick({ ...ui.event(5, 5), target: ui.svg });
+  assert.ok(ui.scene().getAttribute('transform').endsWith('scale(6)'));
+  ui.dispose();
+});

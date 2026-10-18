@@ -161,6 +161,79 @@
     return { centers, points };
   }
 
+  // A bounded layout pass separates crowded bubbles before painting. It does
+  // not run during gestures or keep a background physics simulation alive.
+  function spreadPoints(input, width, height) {
+    const points = input.map(p => ({ ...p }));
+    for (let pass = 0; pass < 36; pass++) {
+      for (let i = 0; i < points.length; i++) for (let j = i + 1; j < points.length; j++) {
+        const a = points[i], b = points[j], dx = b.x - a.x, dy = b.y - a.y;
+        const distance = Math.hypot(dx, dy), needed = Math.max(a.radius, 4) + Math.max(b.radius, 4) + 4;
+        if (distance >= needed) continue;
+        const angle = (hash(`${a.run.id}:${b.run.id}`) % 6283) / 1000;
+        const ux = distance ? dx / distance : Math.cos(angle), uy = distance ? dy / distance : Math.sin(angle);
+        const push = (needed - distance) * .5;
+        a.x -= ux * push; a.y -= uy * push; b.x += ux * push; b.y += uy * push;
+      }
+      points.forEach((p, i) => {
+        p.x += (input[i].x - p.x) * .01; p.y += (input[i].y - p.y) * .01;
+        const margin = Math.max(p.radius, 4) + 8;
+        p.x = Math.max(margin, Math.min(width - margin, p.x)); p.y = Math.max(margin, Math.min(height - margin, p.y));
+      });
+    }
+    return points;
+  }
+
+  // Connections use recorded similarities, never missing values. Bound each run
+  // to two cross-group neighbours so dense streaks remain readable and responsive.
+  function connections(runs, model, lens, groups) {
+    const metrics = ['gain', 'pace', 'hr', 'places'].filter(key => key !== lens);
+    const memberships = runs.map(run => groups.map((g, i) => g.matches(run) ? i : -1).filter(i => i >= 0));
+    const metricGroups = metrics.map(key => groupsFor(model, key));
+    const signatures = runs.map(run => metrics.map((key, i) => {
+      if (key === 'places') return run.place;
+      return run[key] === null ? null : metricGroups[i].findIndex(g => g.matches(run));
+    }));
+    const edges = new Map();
+    const add = (a, b, bridge, reasons) => {
+      const key = [runs[a].id, runs[b].id].sort().join(':');
+      if (!edges.has(key)) edges.set(key, { a: runs[a].id, b: runs[b].id, bridge, reasons });
+    };
+    groups.forEach((g, index) => {
+      const members = runs.map((_, i) => i).filter(i => memberships[i].includes(index));
+      for (let i = 1; i < members.length; i++) add(members[i - 1], members[i], false, [g.name]);
+    });
+    runs.forEach((run, a) => {
+      const candidates = [];
+      runs.forEach((other, b) => {
+        if (a === b || memberships[a].some(i => memberships[b].includes(i))) return;
+        const reasons = metrics.flatMap((key, i) => {
+          const value = signatures[a][i];
+          if (value === null || value !== signatures[b][i]) return [];
+          return [key === 'places' ? model.places[value].name : `${LENSES[key].name}: ${metricGroups[i][value].rule}`];
+        });
+        if (reasons.length) candidates.push({ b, reasons, time: Math.abs(run.start - other.start) });
+      });
+      candidates.sort((a, b) => b.reasons.length - a.reasons.length || a.time - b.time || runs[a.b].id.localeCompare(runs[b.b].id));
+      candidates.slice(0, 2).forEach(c => add(a, c.b, true, c.reasons));
+    });
+    return [...edges.values()];
+  }
+  function zoomAt(view, factor, x, y) {
+    const k = Math.max(.5, Math.min(6, view.k * factor));
+    return { k, x: x - (x - view.x) * k / view.k, y: y - (y - view.y) * k / view.k };
+  }
+  function worldPoint(view, x, y) { return { x: (x - view.x) / view.k, y: (y - view.y) / view.k }; }
+  function fitView(points, width, height) {
+    if (!points.length) return { x: 0, y: 0, k: 1 };
+    const left = Math.min(...points.map(p => p.x - Math.max(p.radius, 8)));
+    const right = Math.max(...points.map(p => p.x + Math.max(p.radius, 8)));
+    const top = Math.min(...points.map(p => p.y - Math.max(p.radius, 8)));
+    const bottom = Math.max(...points.map(p => p.y + Math.max(p.radius, 8)));
+    const k = Math.max(.5, Math.min(6, (width - 60) / Math.max(1, right - left), (height - 60) / Math.max(1, bottom - top)));
+    return { k, x: width / 2 - (left + right) / 2 * k, y: height / 2 - (top + bottom) / 2 * k };
+  }
+
   function mount(root, model) {
     const doc = root.ownerDocument;
     const make = (tag, cls, text, parent = root) => {
@@ -183,7 +256,7 @@
     const lenses = make('div', 'ru-lenses', undefined, stage); lenses.setAttribute('aria-label', 'Explore by metric');
     const lensButtons = Object.entries(LENSES).map(([key, value]) => {
       const b = make('button', '', value.name, lenses); b.type = 'button';
-      b.onclick = () => { lens = key; groups = groupsFor(model, lens); theme = -1; buildButtons(); render(); }; return [key, b];
+      b.onclick = () => switchLens(key); return [key, b];
     });
     const lensNote = make('p', 'ru-lens-note', '', stage);
     const themes = make('div', 'ru-themes', undefined, stage); themes.setAttribute('aria-label', 'Explore running groups');
@@ -196,11 +269,19 @@
       });
     }
     buildButtons();
+    const controls = make('div', 'ru-navigation', undefined, stage);
+    const control = (label, action) => { const b = make('button', '', label, controls); b.type = 'button'; b.onclick = action; return b; };
+    control('−', () => zoom(.8)).setAttribute('aria-label', 'Zoom out');
+    const zoomValue = make('output', 'ru-zoom-value', '100%', controls); zoomValue.setAttribute('aria-label', 'Map zoom');
+    control('+', () => zoom(1.25)).setAttribute('aria-label', 'Zoom in');
+    control('Focus orbit', () => focusOrbit());
+    control('Reset map', () => { pins.clear(); view = { x: 0, y: 0, k: 1 }; draw(true); });
     const map = make('div', 'ru-map', undefined, stage);
     const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Running constellation. Select any run using the chooser below.'); map.append(svg);
+    svg.setAttribute('tabindex', '0'); svg.setAttribute('aria-describedby', 'ru-map-help'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Running constellation. Select any run using the chooser below.'); map.append(svg);
     const count = make('p', 'ru-key', undefined, stage);
-    make('p', 'ru-key', 'Glowing stars are your runs; faint specks are decorative. Lines connect runs in the same group. Bubble area = distance: 20 km is four times the area of 5 km. Hollow diamonds = zero / unavailable distance. Scale stays fixed while scrubbing.', stage);
+    const help = make('p', 'ru-key', 'Drag a bubble to rearrange it. Drag space to pan. Scroll or pinch to zoom. Double-click an orbit to dive in. Keyboard: + / − to zoom, arrows to pan, 0 to reset. Touch: scroll the page outside the map.', stage); help.id = 'ru-map-help';
+    make('p', 'ru-key', 'Glowing stars are your runs; faint specks are decorative. Solid lines connect the current group; dashed lines bridge groups through shared vert, pace, heart rate, or launch site. Select a run to light up its connections. Bubble area = distance: 20 km is four times the area of 5 km. Hollow diamonds = zero / unavailable distance. Scale stays fixed while scrubbing.', stage);
     make('p', 'ru-eyebrow', 'MISSION CONTROL', panel);
     const summary = make('p', 'ru-summary', undefined, panel); summary.setAttribute('aria-live', 'polite');
     const timelineLabel = make('label', 'ru-label', 'Travel through your streak', panel); timelineLabel.htmlFor = 'ru-timeline';
@@ -211,7 +292,29 @@
     const chooser = make('select', 'ru-chooser', undefined, panel); chooser.id = 'ru-chooser';
     chooser.onchange = () => { selectedId = chooser.value; draw(); describe(); };
     const detail = make('div', 'ru-run', undefined, panel); detail.setAttribute('aria-live', 'polite');
-    let current, shown, disposed = false;
+    let current, shown, disposed = false, view = { x: 0, y: 0, k: 1 }, scene, points = [], updatePositions = () => {};
+    const win = doc.defaultView;
+    const pins = new Map(), displayed = new Map(), pointers = new Map();
+    let frame = null, gesture = null, lastOrbit = null, lastWidth = 0, lastHeight = 0;
+    function stopAnimation() { if (frame !== null) win.cancelAnimationFrame(frame); frame = null; }
+    function switchLens(key, group = -1) {
+      lens = key; groups = groupsFor(model, lens); theme = group;
+      view = { x: 0, y: 0, k: 1 }; buildButtons(); render(true);
+      lensButtons.find(([id]) => id === key)[1].focus();
+    }
+    function applyView() {
+      scene?.setAttribute('transform', `translate(${view.x} ${view.y}) scale(${view.k})`);
+      zoomValue.textContent = `${Math.round(view.k * 100)}%`;
+    }
+    function zoom(factor, x = map.clientWidth / 2, y = map.clientHeight / 2) {
+      view = zoomAt(view, factor, x, y); applyView();
+    }
+    function focusOrbit(index = theme) {
+      stopAnimation();
+      const selected = points.find(p => p.run.id === selectedId);
+      const orbit = index === -1 ? selected?.memberships[0] : index;
+      view = fitView(points.filter(p => p.memberships.includes(orbit)), map.clientWidth, map.clientHeight); applyView();
+    }
     function describe() {
       detail.replaceChildren();
       const run = current.runs.find(r => r.id === selectedId);
@@ -227,54 +330,105 @@
         ['Moving pace', paceLabel(run.pace)],
         ['Average HR', run.hr === null ? 'Unavailable' : `${Math.round(run.hr)} bpm`],
       ]) { const cell = make('div', '', undefined, metrics); make('dt', '', label, cell); make('dd', '', value, cell); }
+      const routes = make('div', 'ru-related', undefined, detail);
+      make('p', 'ru-eyebrow', 'FOLLOW THIS RUN', routes);
+      for (const [key, value] of Object.entries(LENSES)) {
+        if (key === lens) continue;
+        const otherGroups = groupsFor(model, key);
+        const index = otherGroups.findIndex(g => g.matches(run));
+        if (index < 0) continue;
+        const b = make('button', '', `${value.name} · ${otherGroups[index].name} ↗`, routes); b.type = 'button';
+        b.onclick = () => switchLens(key, index);
+      }
       const place = model.places[run.place];
       make('p', 'ru-place', place ? `${place.name} · near ${regionLabel(place.coordinates)} (approximate start region)` : 'Uncharted · outdoor start location unavailable', detail);
       if (run.endDay > run.day) make('p', '', `One recording covering streak days ${run.day}–${run.endDay}; shown once.`, detail);
     }
-    function draw() {
+    function draw(animate = false) {
       if (disposed) return;
+      stopAnimation();
       const width = map.clientWidth, height = map.clientHeight;
-      if (!width) return;
+      if (!width || !height) return;
+      if (width !== lastWidth || height !== lastHeight) { view = { x: 0, y: 0, k: 1 }; displayed.clear(); }
+      lastWidth = width; lastHeight = height;
       shown = mapRuns(current.runs, selectedId);
-      const { centers, points } = layout(shown, width, height, model.maxKm, groups);
-      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-      svg.replaceChildren();
-      const mark = (tag, attrs, text) => {
+      const result = layout(shown, width, height, model.maxKm, groups);
+      points = spreadPoints(result.points, width, height);
+      const targets = new Map();
+      for (const p of points) {
+        const pin = pins.get(`${lens}:${p.run.id}`);
+        if (pin) { p.x = pin.x * width; p.y = pin.y * height; }
+        targets.set(p.run.id, { x: p.x, y: p.y });
+        if (animate && displayed.has(p.run.id)) Object.assign(p, displayed.get(p.run.id));
+      }
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.replaceChildren();
+      const mark = (tag, attrs, text, parent = svg) => {
         const el = doc.createElementNS(svg.namespaceURI, tag);
         Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, String(value)));
-        if (text) el.textContent = text; svg.append(el); return el;
+        if (text) el.textContent = text; parent.append(el); return el;
       };
       mark('title', {}, `${LENSES[lens].name} map: ${current.runs.length} runs through streak day ${day}`);
-      // Deterministic decorative stars: no animation, storage, or network work.
       for (let i = 0; i < 100; i++) {
         const seed = hash(`sky-${i}`);
         mark('circle', { cx: (seed % 1000) / 1000 * width, cy: ((seed >>> 10) % 1000) / 1000 * height, r: i % 9 === 0 ? 1 : .5, fill: '#aabbd9', opacity: .18 + (i % 4) * .07, 'aria-hidden': true, 'pointer-events': 'none' });
       }
-      for (let t = 0; t < groups.length; t++) {
-        const group = points.filter(p => p.memberships.includes(t));
-        for (let i = 1; i < group.length; i++) {
-          const a = group[i - 1], b = group[i];
-          mark('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: groups[t].color, 'stroke-width': 1, opacity: theme === t ? .65 : theme === -1 ? .24 : .08 });
-        }
-      }
-      for (const p of points) {
-        const active = theme === -1 || p.memberships.includes(theme);
-        const color = groups[p.memberships[0]].color;
-        if (active) mark('circle', { cx: p.x, cy: p.y, r: p.radius * 2.2, fill: color, opacity: .07, 'pointer-events': 'none' });
-        const node = p.radius > 0
-          ? mark('circle', { cx: p.x, cy: p.y, r: p.radius, fill: color, opacity: active ? .85 : .14 })
-          : mark('path', { d: `M ${p.x} ${p.y - 4} l 4 4 -4 4 -4 -4 Z`, fill: 'none', stroke: color, opacity: active ? .9 : .14 });
-        if (active && p.radius > 0) mark('circle', { cx: p.x, cy: p.y, r: p.radius * .2, fill: '#ffffff', opacity: .9, 'pointer-events': 'none' });
-        const title = doc.createElementNS(svg.namespaceURI, 'title'); title.textContent = `${p.run.name} · ${kmLabel(p.run.km)}`; node.append(title);
-        if (p.run.id === selectedId) mark('circle', { cx: p.x, cy: p.y, r: p.radius + 5, fill: 'none', stroke: 'currentColor', 'stroke-width': 2 });
-      }
-      centers.forEach((c, i) => {
-        if (!current.runs.some(groups[i].matches)) return;
-        mark('text', { x: c[0] * width, y: Math.min(height - 10, c[1] * height + 65), 'text-anchor': 'middle', class: 'ru-map-label', opacity: theme === -1 || theme === i ? 1 : .3 }, groups[i].name);
+      scene = mark('g', { class: 'ru-scene' }); applyView();
+      const byId = new Map(points.map(p => [p.run.id, p]));
+      const edges = connections(shown, model, lens, groups);
+      const lineElements = edges.map(edge => {
+        const a = byId.get(edge.a), b = byId.get(edge.b);
+        const selected = edge.a === selectedId || edge.b === selectedId;
+        const active = theme === -1 || a.memberships.includes(theme) || b.memberships.includes(theme);
+        const line = mark('line', { stroke: edge.bridge ? '#c4dcff' : groups[a.memberships.find(i => b.memberships.includes(i))].color,
+          'stroke-width': selected ? 2 : 1.2, 'stroke-dasharray': edge.bridge ? '5 5' : 'none',
+          'vector-effect': 'non-scaling-stroke', opacity: selected ? .95 : active ? (edge.bridge ? .22 : .6) : .08,
+          class: edge.bridge ? 'ru-bridge' : 'ru-connection' }, undefined, scene);
+        mark('title', {}, edge.reasons.join(' · '), line);
+        return { line, a, b };
       });
-      count.textContent = `${shown.length === current.runs.length ? `${shown.length} runs` : `${shown.length} of ${current.runs.length} dots; every run is in the chooser`} · Ring = selected run`;
+      const nodeElements = points.map(p => {
+        const active = theme === -1 || p.memberships.includes(theme), color = groups[p.memberships[0]].color;
+        const node = mark('g', { class: 'ru-star', 'data-run-id': p.run.id }, undefined, scene);
+        // Transparent hit area is separate from the honest distance-sized bubble.
+        mark('circle', { r: Math.max(p.radius, 10), fill: 'transparent' }, undefined, node);
+        if (active) mark('circle', { r: p.radius * 1.7, fill: color, opacity: .06, 'pointer-events': 'none' }, undefined, node);
+        if (p.radius > 0) mark('circle', { r: p.radius, fill: color, opacity: active ? .85 : .14 }, undefined, node);
+        else mark('path', { d: 'M 0 -4 l 4 4 -4 4 -4 -4 Z', fill: 'none', stroke: color, opacity: active ? .9 : .14 }, undefined, node);
+        if (active && p.radius > 0) mark('circle', { r: p.radius * .2, fill: '#fff', opacity: .9, 'pointer-events': 'none' }, undefined, node);
+        mark('title', {}, `${p.run.name} · ${kmLabel(p.run.km)} · drag to move`, node);
+        if (p.run.id === selectedId) mark('circle', { r: p.radius + 5, fill: 'none', stroke: '#fff', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, undefined, node);
+        return { node, p };
+      });
+      result.centers.forEach((c, i) => {
+        if (!current.runs.some(groups[i].matches)) return;
+        mark('text', { x: c[0] * width, y: Math.min(height - 10, c[1] * height + 65), 'text-anchor': 'middle', class: 'ru-map-label', 'data-orbit': i, opacity: theme === -1 || theme === i ? 1 : .3 }, groups[i].name, scene);
+      });
+      updatePositions = () => {
+        for (const { node, p } of nodeElements) {
+          node.setAttribute('transform', `translate(${p.x} ${p.y})`);
+          displayed.set(p.run.id, { x: p.x, y: p.y });
+        }
+        for (const { line, a, b } of lineElements) {
+          line.setAttribute('x1', a.x); line.setAttribute('y1', a.y); line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+        }
+      };
+      const origins = new Map(points.map(p => [p.run.id, { x: p.x, y: p.y }]));
+      if (animate && !win.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        let started;
+        const tick = now => {
+          if (disposed) return;
+          started ??= now;
+          const progress = Math.min(1, (now - started) / 450), eased = 1 - (1 - progress) ** 3;
+          points.forEach(p => { const from = origins.get(p.run.id), to = targets.get(p.run.id); p.x = from.x + (to.x - from.x) * eased; p.y = from.y + (to.y - from.y) * eased; });
+          updatePositions();
+          frame = progress < 1 ? win.requestAnimationFrame(tick) : null;
+        };
+        frame = win.requestAnimationFrame(tick);
+      } else { points.forEach(p => Object.assign(p, targets.get(p.run.id))); }
+      updatePositions();
+      count.textContent = `${shown.length === current.runs.length ? `${shown.length} runs` : `${shown.length} of ${current.runs.length} dots; every run is in the chooser`} · ${edges.filter(e => e.bridge).length} bridges across groups · Ring = selected run`;
     }
-    function render() {
+    function render(animate = false) {
       current = snapshot(model, day, lens === 'themes' ? theme : -1);
       if (lens !== 'themes') current.members = theme === -1 ? current.runs : current.runs.filter(groups[theme].matches);
       lensButtons.forEach(([key, b]) => b.setAttribute('aria-pressed', String(key === lens)));
@@ -292,21 +446,89 @@
       summary.textContent = theme === -1
         ? `${current.runs.length} distinct runs across ${day} streak ${day === 1 ? 'day' : 'days'}. ${lens === 'themes' ? 'Themes overlap: one run can belong to several.' : lens === 'places' ? `${new Set(current.runs.filter(r => r.place !== null).map(r => r.place)).size} launch sites discovered. Uncharted runs stay visible.` : 'Pick an orbit to explore runs with similar readings.'}`
         : `${groups[theme].name}: ${current.members.length} of ${current.runs.length} runs. ${groups[theme].rule}.${current.crossovers.length ? ' Crossovers: ' + current.crossovers.map(c => `${c.count} also in ${c.name}`).join(' · ') + '.' : ''}`;
-      draw(); describe();
+      draw(animate); describe();
     }
-    // Pointer selection uses nearest marks; the native chooser provides the same
-    // information for keyboard users and for runs outside the bounded map sample.
-    svg.onclick = e => {
-      const rect = svg.getBoundingClientRect();
-      const { points } = layout(shown, rect.width, rect.height, model.maxKm, groups);
-      const nearest = points.filter(p => theme === -1 || p.memberships.includes(theme)).map(p => ({ ...p, d: Math.hypot(p.x - (e.clientX - rect.left), p.y - (e.clientY - rect.top)) })).sort((a, b) => a.d - b.d)[0];
-      if (nearest && nearest.d < Math.max(24, nearest.radius + 5)) { selectedId = nearest.run.id; chooser.value = selectedId; draw(); describe(); }
+    const eventPoint = e => { const rect = svg.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; };
+    const hit = point => {
+      const world = worldPoint(view, point.x, point.y);
+      return points.filter(p => theme === -1 || p.memberships.includes(theme))
+        .map(p => ({ p, d: Math.hypot(p.x - world.x, p.y - world.y) }))
+        .filter(({ p, d }) => d <= Math.max(p.radius, 12 / view.k))
+        .sort((a, b) => a.d - b.d)[0]?.p;
     };
-    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(draw) : null;
+    function pinchState() {
+      const [a, b] = [...pointers.values()];
+      return { center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) };
+    }
+    svg.onpointerdown = e => {
+      if (e.button !== 0) return;
+      e.preventDefault(); stopAnimation(); svg.focus({ preventScroll: true });
+      lastOrbit = e.target?.closest?.('[data-orbit]')?.getAttribute('data-orbit') ?? null;
+      const point = eventPoint(e); pointers.set(e.pointerId, point); svg.setPointerCapture(e.pointerId);
+      if (pointers.size > 1) { gesture = { type: 'pinch', ...pinchState() }; return; }
+      const found = hit(point);
+      gesture = { type: found ? 'run' : 'pan', id: found?.run.id, last: point, moved: false };
+      map.classList.add('ru-dragging');
+    };
+    svg.onpointermove = e => {
+      if (!pointers.has(e.pointerId) || !gesture) return;
+      const point = eventPoint(e); pointers.set(e.pointerId, point);
+      if (pointers.size > 1) {
+        const next = pinchState();
+        view = zoomAt(view, next.distance / gesture.distance, gesture.center.x, gesture.center.y);
+        view.x += next.center.x - gesture.center.x; view.y += next.center.y - gesture.center.y;
+        gesture = { type: 'pinch', ...next }; applyView(); return;
+      }
+      const dx = point.x - gesture.last.x, dy = point.y - gesture.last.y;
+      if (!gesture.moved && Math.hypot(dx, dy) < 3) return;
+      gesture.moved = true; gesture.last = point;
+      if (gesture.type === 'run') {
+        const p = points.find(p => p.run.id === gesture.id);
+        if (p) {
+          p.x += dx / view.k; p.y += dy / view.k;
+          pins.set(`${lens}:${p.run.id}`, { x: p.x / map.clientWidth, y: p.y / map.clientHeight }); updatePositions();
+        }
+      } else { view.x += dx; view.y += dy; applyView(); }
+    };
+    function endPointer(e, cancelled = false) {
+      if (!pointers.has(e.pointerId)) return;
+      const previous = gesture; pointers.delete(e.pointerId);
+      if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
+      if (pointers.size) { gesture = { type: 'pan', last: [...pointers.values()][0], moved: true }; return; }
+      gesture = null; map.classList.remove('ru-dragging');
+      if (!cancelled && previous?.type === 'run') {
+        selectedId = previous.id; chooser.value = selectedId; draw(); describe();
+      }
+    }
+    svg.onpointerup = e => endPointer(e);
+    svg.onpointercancel = e => endPointer(e, true);
+    svg.onlostpointercapture = e => endPointer(e, true);
+    svg.addEventListener('wheel', e => { e.preventDefault(); const p = eventPoint(e); zoom(Math.exp(-Math.max(-100, Math.min(100, e.deltaY)) * .008), p.x, p.y); }, { passive: false });
+    svg.ondblclick = e => {
+      // Pointer capture retargets the double-click to the SVG; retain the label
+      // observed at pointer-down so a label still focuses its own orbit.
+      const orbit = e.target?.closest?.('[data-orbit]')?.getAttribute('data-orbit') ?? lastOrbit;
+      const p = hit(eventPoint(e));
+      if (orbit !== undefined && orbit !== null) focusOrbit(Number(orbit));
+      else if (p) focusOrbit(p.memberships[0]);
+      else { const at = eventPoint(e); zoom(1.8, at.x, at.y); }
+    };
+    svg.onkeydown = e => {
+      if (['+', '=', '-', '0', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
+      if (e.key === '+' || e.key === '=') zoom(1.25);
+      if (e.key === '-') zoom(.8);
+      if (e.key === '0') { view = { x: 0, y: 0, k: 1 }; applyView(); }
+      if (e.key === 'ArrowLeft') view.x += 40;
+      if (e.key === 'ArrowRight') view.x -= 40;
+      if (e.key === 'ArrowUp') view.y += 40;
+      if (e.key === 'ArrowDown') view.y -= 40;
+      applyView();
+    };
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(() => draw()) : null;
     render(); observer?.observe(map);
-    return () => { disposed = true; observer?.disconnect(); };
+    return () => { disposed = true; stopAnimation(); pointers.clear(); observer?.disconnect(); };
   }
-  const api = { THEMES, LENSES, buildModel, snapshot, mapRuns, layout, groupsFor, paceLabel, mount };
+  const api = { THEMES, LENSES, buildModel, snapshot, mapRuns, layout, spreadPoints, groupsFor, paceLabel, connections, zoomAt, worldPoint, fitView, mount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else globalThis.StreakFunMode = api;
 })();
