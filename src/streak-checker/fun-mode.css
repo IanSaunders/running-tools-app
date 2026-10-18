@@ -50,3 +50,14 @@
   .running-underground .ru-run { margin-top: .8rem; line-height: 1.5; }
   .running-underground .ru-metrics { margin: .7rem 0; }
 }
+
+.running-underground .ru-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .8rem; }
+.running-underground .ru-navigation button, .running-underground .ru-related button { font: inherit; font-size: .78rem; color: #d5e4ff; background: #16233c; border: 1px solid #435877; border-radius: 9px; min-height: 44px; padding: .55rem .8rem; cursor: pointer; }
+.running-underground .ru-navigation button:hover, .running-underground .ru-related button:hover { background: #274060; border-color: #80d5ff; }
+.running-underground .ru-zoom-value { min-width: 3.3rem; text-align: center; font: .75rem ui-monospace, monospace; color: #b9d9ee; }
+.running-underground .ru-map svg { touch-action: none; cursor: grab; user-select: none; }
+.running-underground .ru-map .ru-star { cursor: grab; }
+.running-underground .ru-map .ru-map-label { pointer-events: auto; cursor: zoom-in; }
+.running-underground .ru-dragging svg, .running-underground .ru-dragging .ru-star { cursor: grabbing; }
+.running-underground .ru-related { border-top: 1px solid #303b58; padding-top: .5rem; }
+.running-underground .ru-related button { display: block; width: 100%; margin: .4rem 0; text-align: left; }
