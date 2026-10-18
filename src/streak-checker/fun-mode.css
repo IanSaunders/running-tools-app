@@ -61,3 +61,9 @@
 .running-underground .ru-dragging svg, .running-underground .ru-dragging .ru-star { cursor: grabbing; }
 .running-underground .ru-related { border-top: 1px solid #303b58; padding-top: .5rem; }
 .running-underground .ru-related button { display: block; width: 100%; margin: .4rem 0; text-align: left; }
+
+.running-underground .ru-navigation button[aria-pressed="true"] { color: #d9f8f1; background: #25453f; border-color: #5a897f; }
+.running-underground .ru-navigation button[aria-label="Find longest run"] { color: #fff1b4; border-color: #8a7950; }
+.running-underground .ru-size-guide { color: #bac9e4; font-size: .78rem; margin: .5rem 0; }
+.running-underground .ru-size-guide summary { cursor: pointer; padding: .65rem 0; min-height: 44px; }
+.running-underground .ru-size-guide svg { display: block; width: 100%; max-width: 360px; height: auto; }
